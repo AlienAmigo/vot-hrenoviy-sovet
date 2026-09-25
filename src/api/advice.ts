@@ -94,12 +94,26 @@ export async function fetchAdviceByPath(
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/${path}`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}/${path}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      // Оборачиваем только сетевые/отменённые ошибки fetch.
+      if (isAbortError(error)) {
+        throw new AdviceApiError(
+          externalSignal?.aborted
+            ? 'Запрос отменён'
+            : `Таймаут запроса (${REQUEST_TIMEOUT_MS} мс)`,
+        );
+      }
+      throw new AdviceApiError(error instanceof Error ? error.message : 'Сетевая ошибка');
+    }
 
+    // Дальше — валидация. Эти ошибки никто не перехватывает.
     if (!response.ok) {
       throw new AdviceApiError(`API вернул HTTP ${response.status}`, response.status);
     }
@@ -121,18 +135,6 @@ export async function fetchAdviceByPath(
     }
 
     return parseAdvice(payload);
-  } catch (error) {
-    if (error instanceof AdviceApiError) {
-      throw error;
-    }
-    if (isAbortError(error)) {
-      throw new AdviceApiError(
-        externalSignal?.aborted
-          ? 'Запрос отменён'
-          : `Таймаут запроса (${REQUEST_TIMEOUT_MS} мс)`,
-      );
-    }
-    throw new AdviceApiError(error instanceof Error ? error.message : 'Сетевая ошибка');
   } finally {
     clearTimeout(timeout);
     externalSignal?.removeEventListener('abort', relayAbort);

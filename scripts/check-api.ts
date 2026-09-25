@@ -92,8 +92,8 @@ async function main(): Promise<void> {
     assert(threw, label);
   }
 
-  assert(isAdvice(objectPayload) === true, 'isAdvice принимает валидный объект');
-  assert(isAdvice({}) === false, 'isAdvice отклоняет пустой объект');
+  assert(isAdvice(objectPayload), 'isAdvice принимает валидный объект');
+  assert(!isAdvice({}), 'isAdvice отклоняет пустой объект');
 
   section('Живые запросы к API');
 
