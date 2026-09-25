@@ -85,7 +85,7 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 - [x] `expo-build-properties` с R8 + shrinkResources
 - [x] `src/api/advice.ts` — HTTP-слой с валидацией и обработкой ошибок
 - [x] `npm run typecheck` — без ошибок
-- [x] `npm run check:api` — 24 проверки, включая живые запросы
+- [x] `npm run check:api` — 21 проверка, включая живые запросы
 - [x] `npx expo prebuild --platform android` — конфиг валиден
 
 Дальше:
