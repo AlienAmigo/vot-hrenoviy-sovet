@@ -19,8 +19,8 @@ import {
   parseAdviceList,
 } from '@api/advice';
 
-/** Хост сайта: нужен для «сырых» проверок мимо модуля. */
-const HOST = API_BASE_URL;
+/** Origin сайта — для «сырых» проверок мимо модуля (пути даём от корня, не от /api/v2). */
+const HOST = new URL(API_BASE_URL).origin;
 
 let failures = 0;
 

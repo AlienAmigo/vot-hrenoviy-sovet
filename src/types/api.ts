@@ -36,7 +36,6 @@ export interface AdviceQuery {
   readonly tag?: string;
 }
 
-
 /** Обязательные поля тега; остальные читаются как unknown. */
 export interface RawTagFields extends Record<string, unknown> {
   readonly id: number;

@@ -74,18 +74,22 @@ npx expo-doctor
 
 ```
 app.json            # scheme, android.package, versionCode, plugins (expo-build-properties)
-App.tsx             # шаблонный, UI ещё не написан
 index.ts            # registerRootComponent
+src/App.tsx         # шаблонный, UI ещё не написан
 src/api/advice.ts   # весь HTTP-слой — единственная точка доступа к API
+src/types/          # типы API (Advice, AdviceTag, …), alias @types
+src/config/         # константы (API_BASE_URL, …), alias @config
 scripts/check-api.ts # проверки: парсер + живые запросы
+scripts/register-aliases.mjs # резолвер tsconfig-путей для Node (--import в check:api)
 assets/             # иконки, splash
 android/            # сгенерировано prebuild, в git не входит
 ```
 
-`src/api/advice.ts` экспортирует: `Advice`, `AdviceConclusion`, `AdviceTag`, `AdviceQuery`,
-`AdviceApiError`, `isAdvice`, `isAdviceConclusion`, `parseAdvice`, `parseAdviceList`,
-`htmlToText`, `fetchAdvices`, `fetchAdviceById`, `fetchLatestAdvice`, `fetchTags`,
-`API_BASE_URL`, `REQUEST_TIMEOUT_MS`, `MAX_BATCH_SIZE`.
+`src/api/advice.ts` экспортирует: `AdviceApiError`, `isAdvice`, `isAdviceConclusion`,
+`parseAdvice`, `parseAdviceList`, `htmlToText`, `fetchAdvices`, `fetchAdviceById`,
+`fetchLatestAdvice`, `fetchTags`. Типы (`Advice`, `AdviceConclusion`, `AdviceTag`,
+`AdviceQuery`) — `src/types` (alias `@types`), константы (`API_BASE_URL`,
+`REQUEST_TIMEOUT_MS`, `MAX_BATCH_SIZE`) — `src/config` (alias `@config`).
 
 Ходить в сеть напрямую из компонентов нельзя — только через этот модуль.
 
@@ -102,9 +106,14 @@ android/            # сгенерировано prebuild, в git не вход�
 Заведено в `tsconfig.json` (пути без `baseUrl`, по-относительному — TypeScript 6.0 объявил
 `baseUrl` устаревшим). Metro в SDK 57 читает `paths` из tsconfig сам (`experiments.tsconfigPaths`
 включён по умолчанию) — отдельная конфигурация не нужна; ESLint-резолвер `eslint-config-expo`
-тоже их понимает. Каталоги `src/types` и `src/components` пока пусты/не созданы — алиасы
-заведены заранее. В `scripts/*.ts` алиасы не использовать — Node (type stripping) их не знает,
-там только относительные импорты с расширением `.ts`.
+тоже их понимает. Каталог `src/components` пока пуст — алиас заведён заранее.
+
+**Все импорты внутри проекта — через алиасы** (кроме npm-пакетов и `node:`-билтинов):
+относительные `'./'`/`'../'` не используются. Node сам tsconfig-paths не знает, поэтому
+`check:api` запускается с `--import scripts/register-aliases.mjs` — этот хук читает
+`compilerOptions.paths` из tsconfig и резолвит алиасы в Node. Metro и `tsc` читают tsconfig
+сами, им ничего не нужно. Новые алиасы заводить с оглядкой на этот загрузчик (он покрывает
+то, что в tsconfig `paths`).
 
 ## API — факты, проверенные вживую
 
@@ -148,8 +157,6 @@ android/            # сгенерировано prebuild, в git не вход�
 - **Никаких `any`** — только `unknown` + сужение.
 - Комментарии и сообщения об ошибках — на русском.
 - Имена файлов: `kebab-case` для скриптов/модулей, `PascalCase` для компонентов.
-- Импорты в `scripts/*.ts` — с расширением `.ts` (Node ESM требует явного пути).
-  `allowImportingTsExtensions` включён в `tsconfig.json`.
 
 ## Состояние проекта
 

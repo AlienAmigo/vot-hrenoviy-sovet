@@ -20,6 +20,7 @@
  *  - только HTTPS: Android 9+ блокирует cleartext-трафик по умолчанию.
  */
 
+// Алиасы работают и в Node (check:api) — там их резолвит scripts/register-aliases.mjs.
 import { API_BASE_URL, REQUEST_TIMEOUT_MS, MAX_BATCH_SIZE } from '@config';
 
 /* types */
