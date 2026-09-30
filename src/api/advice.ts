@@ -80,15 +80,15 @@ export class AdviceApiError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
 }
 
-function isString(value: unknown): value is string {
+const isString = (value: unknown): value is string => {
   return typeof value === 'string';
 }
 
-function isAbortError(error: unknown): boolean {
+const isAbortError = (error: unknown): boolean => {
   return error instanceof Error && error.name === 'AbortError';
 }
 
@@ -96,7 +96,7 @@ function isAbortError(error: unknown): boolean {
  * Валидирует обязательные поля совета. Опциональные (html/tags/conclusions) проверяет
  * normalizeAdvice, иначе тип обещал бы больше, чем проверено.
  */
-export function isAdvice(value: unknown): value is Advice {
+export const isAdvice = (value: unknown): value is Advice => {
   if (!isRecord(value)) {
     return false;
   }
@@ -104,7 +104,7 @@ export function isAdvice(value: unknown): value is Advice {
 }
 
 /** Валидирует продолжение совета. */
-export function isAdviceConclusion(value: unknown): value is AdviceConclusion {
+export const isAdviceConclusion = (value: unknown): value is AdviceConclusion => {
   return (
     isRecord(value) &&
     typeof value.id === 'number' &&
@@ -120,7 +120,7 @@ interface RawTagFields extends Record<string, unknown> {
   readonly alias: string;
 }
 
-function isRawTag(value: unknown): value is RawTagFields {
+const isRawTag = (value: unknown): value is RawTagFields => {
   return (
     isRecord(value) &&
     typeof value.id === 'number' &&
@@ -130,7 +130,7 @@ function isRawTag(value: unknown): value is RawTagFields {
 }
 
 /** Копирует только известные поля: сервер может прислать и лишнее, и мусор вместо типа. */
-function normalizeAdvice(candidate: Advice): Advice {
+const normalizeAdvice = (candidate: Advice): Advice => {
   const advice: {
     id: number;
     text: string;
@@ -152,7 +152,7 @@ function normalizeAdvice(candidate: Advice): Advice {
 }
 
 /** Копирует известные поля тега, приводя isDefault (в ответе 0/1) к boolean. */
-function toAdviceTag(raw: RawTagFields): AdviceTag {
+const toAdviceTag = (raw: RawTagFields): AdviceTag => {
   const tag: {
     id: number;
     name: string;
@@ -184,7 +184,7 @@ function toAdviceTag(raw: RawTagFields): AdviceTag {
  * Разметка сайта -> плоский текст: <br> это перевод строки, теги и HTML-сущности снимаются.
  * Нужно для React Native (он не рендерит HTML), для шаринга и для будущего виджета.
  */
-export function htmlToText(html: string): string {
+export const htmlToText = (html: string): string => {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '')
@@ -197,7 +197,7 @@ export function htmlToText(html: string): string {
     .trim();
 }
 /** Универсальный GET с одинаковыми guard'ами. `path` — путь относительно API_BASE_URL. */
-async function requestJson(path: string, externalSignal?: AbortSignal): Promise<unknown> {
+const requestJson = async (path: string, externalSignal?: AbortSignal): Promise<unknown> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const relayAbort = (): void => controller.abort();
@@ -253,7 +253,7 @@ async function requestJson(path: string, externalSignal?: AbortSignal): Promise<
 }
 
 /** Достаёт `data` из конверта v2; status:"error" превращает в AdviceApiError (HTTP там 200!). */
-function unwrapEnvelope(payload: unknown): unknown {
+const unwrapEnvelope = (payload: unknown): unknown => {
   if (!isRecord(payload)) {
     throw new AdviceApiError('Неожиданная структура ответа API');
   }
@@ -267,7 +267,7 @@ function unwrapEnvelope(payload: unknown): unknown {
   return payload.data;
 }
 /** Разбирает конверт с одиночным советом (ручка latest). */
-export function parseAdvice(payload: unknown): Advice {
+export const parseAdvice = (payload: unknown): Advice => {
   const candidate = unwrapEnvelope(payload);
   if (!isAdvice(candidate)) {
     throw new AdviceApiError('Неожиданная структура ответа API');
@@ -276,7 +276,7 @@ export function parseAdvice(payload: unknown): Advice {
 }
 
 /** Разбирает конверт со списком советов (ручка random-advices). Пустой список допустим. */
-export function parseAdviceList(payload: unknown): readonly Advice[] {
+export const parseAdviceList = (payload: unknown): readonly Advice[] => {
   const data = unwrapEnvelope(payload);
   if (!Array.isArray(data)) {
     throw new AdviceApiError('Неожиданная структура ответа API');
@@ -294,7 +294,7 @@ export function parseAdviceList(payload: unknown): readonly Advice[] {
 }
 
 /** Проверяет id до запроса: на мусор сервер отвечает случайным советом, а не ошибкой. */
-function normalizeAdviceId(id: number): number {
+const normalizeAdviceId = (id: number): number => {
   if (!Number.isInteger(id) || id < 1) {
     throw new AdviceApiError(`Некорректный id совета: ${String(id)}`);
   }
@@ -302,7 +302,7 @@ function normalizeAdviceId(id: number): number {
 }
 
 /** Приводит limit к допустимому: целое ≥ 1 и не больше MAX_BATCH_SIZE. */
-function normalizeLimit(limit: number): number {
+const normalizeLimit = (limit: number): number => {
   if (!Number.isInteger(limit) || limit < 1) {
     throw new AdviceApiError(`Некорректный limit: ${String(limit)}`);
   }
@@ -314,10 +314,10 @@ function normalizeLimit(limit: number): number {
  * с `startID` — тот же батч, но первым идёт совет с этим id.
  * Точное число советов сервер не гарантирует: их всегда не больше запрошенного `limit`.
  */
-export async function fetchAdvices(
+export const fetchAdvices = async (
   query: AdviceQuery = {},
   signal?: AbortSignal,
-): Promise<readonly Advice[]> {
+): Promise<readonly Advice[]> => {
   const parts: string[] = [];
   if (query.limit !== undefined) {
     parts.push(`limit=${normalizeLimit(query.limit)}`);
@@ -340,7 +340,7 @@ export async function fetchAdvices(
  * Конкретный совет по id. Отдельной ручки нет: startID у random-advices ставит нужный
  * совет первым. Если первым пришёл другой совет — значит такого id в базе нет.
  */
-export async function fetchAdviceById(id: number, signal?: AbortSignal): Promise<Advice> {
+export const fetchAdviceById = async (id: number, signal?: AbortSignal): Promise<Advice> => {
   const adviceId = normalizeAdviceId(id);
   const advices = await fetchAdvices({ limit: 1, startID: adviceId }, signal);
   const first = advices[0];
@@ -351,12 +351,12 @@ export async function fetchAdviceById(id: number, signal?: AbortSignal): Promise
 }
 
 /** Последний (сегодняшний) совет. */
-export async function fetchLatestAdvice(signal?: AbortSignal): Promise<Advice> {
+export const fetchLatestAdvice = async (signal?: AbortSignal): Promise<Advice> => {
   return parseAdvice(await requestJson('latest', signal));
 }
 
 /** Справочник тегов. `alias` — значение для query `tag`. */
-export async function fetchTags(signal?: AbortSignal): Promise<readonly AdviceTag[]> {
+export const fetchTags = async (signal?: AbortSignal): Promise<readonly AdviceTag[]> => {
   const data = unwrapEnvelope(await requestJson('tags', signal));
   if (!Array.isArray(data)) {
     throw new AdviceApiError('API вернул не массив тегов');

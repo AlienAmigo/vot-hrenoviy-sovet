@@ -25,7 +25,7 @@ const HOST = 'https://fucking-great-advice.ru';
 
 let failures = 0;
 
-function assert(condition: boolean, label: string): void {
+const assert = (condition: boolean, label: string): void => {
   if (condition) {
     console.log(`  ok   ${label}`);
   } else {
@@ -35,10 +35,10 @@ function assert(condition: boolean, label: string): void {
 }
 
 /** Проверяет, что вызов падает AdviceApiError, и возвращает текст ошибки для доп. проверок. */
-async function expectApiError(
+const expectApiError = async (
   call: () => Promise<unknown>,
   label: string,
-): Promise<string | undefined> {
+): Promise<string | undefined> => {
   try {
     await call();
     failures += 1;
@@ -55,7 +55,7 @@ async function expectApiError(
   }
 }
 
-function section(title: string): void {
+const section = (title: string): void => {
   console.log(`\n${title}`);
 }
 
@@ -67,7 +67,7 @@ interface RawResponse {
   readonly headers: Headers;
 }
 
-async function rawOnce(path: string): Promise<RawResponse> {
+const rawOnce = async (path: string): Promise<RawResponse> => {
   const response = await fetch(`${HOST}${path}`, { headers: { Accept: 'application/json' } });
   return {
     status: response.status,
@@ -81,7 +81,7 @@ async function rawOnce(path: string): Promise<RawResponse> {
  * «Сырой» GET: фиксируем поведение сервера, а не нашего кода.
  * Живые ручки сегодня заметно флапают 500/HTML (наблюдалось 2026-09-30) — до 3 попыток с паузой.
  */
-async function rawGet(path: string): Promise<RawResponse> {
+const rawGet = async (path: string): Promise<RawResponse> => {
   let last = await rawOnce(path);
   for (let attempt = 0; attempt < 2 && last.status === 500; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 400));
@@ -94,7 +94,7 @@ async function rawGet(path: string): Promise<RawResponse> {
  * Живой вызов модуля с повторами: сервер флапает 500/HTML, а проверяем мы контракт API,
  * а не доступность сервера. Настоящую поломку повтор не скрывает — она воспроизводится.
  */
-async function live<T>(call: () => Promise<T>): Promise<T> {
+const live = async <T>(call: () => Promise<T>): Promise<T> => {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -117,7 +117,7 @@ async function live<T>(call: () => Promise<T>): Promise<T> {
   throw lastError;
 }
 
-async function main(): Promise<void> {
+const main = async (): Promise<void> => {
   section('Чистые проверки разбора конверта v2');
 
   const singleEnvelope = {
