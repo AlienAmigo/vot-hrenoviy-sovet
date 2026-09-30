@@ -5,11 +5,10 @@
  * Запуск: npm run check:api
  * Выход с ненулевым кодом, если хоть одна проверка упала.
  */
+import { API_BASE_URL, MAX_BATCH_SIZE } from '@config';
 
 import {
   AdviceApiError,
-  API_BASE_URL,
-  MAX_BATCH_SIZE,
   fetchAdviceById,
   fetchAdvices,
   fetchLatestAdvice,
@@ -18,10 +17,10 @@ import {
   isAdvice,
   parseAdvice,
   parseAdviceList,
-} from '../src/api/advice.ts';
+} from '@api/advice';
 
 /** Хост сайта: нужен для «сырых» проверок мимо модуля. */
-const HOST = 'https://fucking-great-advice.ru';
+const HOST = API_BASE_URL;
 
 let failures = 0;
 

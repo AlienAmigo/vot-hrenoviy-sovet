@@ -20,55 +20,11 @@
  *  - только HTTPS: Android 9+ блокирует cleartext-трафик по умолчанию.
  */
 
-/** Адрес API (v2). Только HTTPS. */
-export const API_BASE_URL = 'https://fucking-great-advice.ru/api/v2';
+import { API_BASE_URL, REQUEST_TIMEOUT_MS, MAX_BATCH_SIZE } from '@config';
 
-/** Таймаут одного запроса, мс. */
-export const REQUEST_TIMEOUT_MS = 8000;
+/* types */
+import type { AdviceConclusion, AdviceTag, AdviceQuery, Advice, RawTagFields } from '@types';
 
-/**
- * Потолок выборки за один запрос. Сервер не отдаёт больше ~40 советов даже при limit=1000,
- * поэтому большие значения урезаются локально.
- */
-export const MAX_BATCH_SIZE = 40;
-
-/** Продолжение совета: тот же id, но свой html (на сайте это следующая «страница»). */
-export interface AdviceConclusion {
-  readonly id: number;
-  readonly text: string;
-  readonly html?: string;
-}
-
-/** Совет. `text` — плоский текст, `html` — разметка сайта (<br>, <span class="heighten">). */
-export interface Advice {
-  readonly id: number;
-  readonly text: string;
-  readonly html?: string;
-  readonly tags?: readonly string[];
-  readonly conclusions?: readonly AdviceConclusion[];
-}
-
-/** Тег из /api/v2/tags. `alias` — то, что передаётся в query `tag`. */
-export interface AdviceTag {
-  readonly id: number;
-  readonly name: string;
-  readonly alias: string;
-  readonly title?: string;
-  /** В ответе сервера приходит числом 0/1, здесь приведён к boolean. */
-  readonly isDefault?: boolean;
-  readonly images?: readonly string[];
-  readonly advicesCount?: number;
-}
-
-/** Параметры выборки советов. */
-export interface AdviceQuery {
-  /** Верхняя граница размера батча; сервер вправе вернуть меньше. */
-  readonly limit?: number;
-  /** Совет, который должен идти первым в батче. */
-  readonly startID?: number;
-  /** Alias тега; пустая строка игнорируется. */
-  readonly tag?: string;
-}
 /** Ошибка любого уровня: сеть, таймаут, HTTP-статус, не-JSON, ошибка в конверте, кривая структура. */
 export class AdviceApiError extends Error {
   readonly status: number | undefined;
@@ -112,13 +68,6 @@ export const isAdviceConclusion = (value: unknown): value is AdviceConclusion =>
     value.text.length > 0
   );
 };
-
-/** Обязательные поля тега; остальные читаются как unknown. */
-interface RawTagFields extends Record<string, unknown> {
-  readonly id: number;
-  readonly name: string;
-  readonly alias: string;
-}
 
 const isRawTag = (value: unknown): value is RawTagFields => {
   return (

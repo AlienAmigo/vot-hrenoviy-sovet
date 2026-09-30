@@ -1,0 +1,11 @@
+/** Адрес API (v2). Только HTTPS. */
+export const API_BASE_URL = 'https://fucking-great-advice.ru/api/v2';
+
+/** Таймаут одного запроса, мс. */
+export const REQUEST_TIMEOUT_MS = 8_000;
+
+/**
+ * Потолок выборки за один запрос. Сервер не отдаёт больше ~40 советов даже при limit=1000,
+ * поэтому большие значения урезаются локально.
+ */
+export const MAX_BATCH_SIZE = 40;
