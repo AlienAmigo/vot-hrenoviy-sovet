@@ -14,17 +14,18 @@ Expo SDK 57. Сейчас это **каркас с API-слоем**: экран 
 
 ## Стек
 
-| Компонент | Роль |
-|---|---|
-| Expo SDK 57 (`expo ~57.0.25`) | prebuild/CNG, config plugins |
-| React Native `0.86.3`, React `19.2.3` | |
-| TypeScript `~6.0.3` | `strict` + `noUncheckedIndexedAccess` |
-| Шаблон `blank-typescript` | **без `expo-router`** |
-| `fetch` из коробки | без HTTP-библиотек |
-| `expo-build-properties ~57.0.22` | R8 + shrinkResources |
+| Компонент                             | Роль                                  |
+| ------------------------------------- | ------------------------------------- |
+| Expo SDK 57 (`expo ~57.0.25`)         | prebuild/CNG, config plugins          |
+| React Native `0.86.3`, React `19.2.3` |                                       |
+| TypeScript `~6.0.3`                   | `strict` + `noUncheckedIndexedAccess` |
+| Шаблон `blank-typescript`             | **без `expo-router`**                 |
+| `fetch` из коробки                    | без HTTP-библиотек                    |
+| `expo-build-properties ~57.0.22`      | R8 + shrinkResources                  |
 
 Зависимости приложения: `expo`, `expo-build-properties`, `expo-status-bar`, `react`, `react-native`.
-Dev: `typescript`, `@types/react`. Больше ничего.
+Dev: `typescript`, `@types/react`, `eslint` (с `eslint-config-expo`), `prettier`
+(с `eslint-config-prettier`). Больше ничего.
 
 ## Жёсткие правила
 
@@ -57,6 +58,8 @@ export PATH="$HOME/.nvm/versions/node/v22.19.0/bin:$PATH"
 
 npm install
 npm run typecheck     # tsc --noEmit — прогнать ПЕРЕД финалом
+npm run lint          # eslint .
+npm run format        # prettier --write .
 npm run check:api     # 65 проверок: парсер + живые запросы к API
 npm start              # expo start
 npm run android        # expo run:android (нужен prebuild)
@@ -64,7 +67,8 @@ npx expo prebuild --platform android
 npx expo-doctor
 ```
 
-Валидация после любой правки: `npm run typecheck` && `npm run check:api`. Оба должны быть EXIT=0.
+Валидация после любой правки: `npm run typecheck` && `npm run lint` && `npm run check:api`.
+Все должны быть EXIT=0. Форматирование: `npm run format` (Prettier, конфиг в `.prettierrc`).
 
 ## Структура
 
@@ -90,15 +94,15 @@ android/            # сгенерировано prebuild, в git не вход�
 Полная документация — `src/api/api_v2.md`. Проверено 2026-09-30. Сайт ходит в
 **недокументированный `/api/v2/*`**, страница документации описывает только легаси v1:
 
-| Запрос | Результат |
-|---|---|
-| `GET /api/v2/random-advices?limit=&startID=` | 200, конверт, `data` — **массив** советов (≤40) |
-| `GET /api/v2/random-advices-by-tag?tag=<alias>` | 200, массив советов тега; без `tag` → 400 |
-| `GET /api/v2/latest` | 200, `data` — **объект** совета |
-| `GET /api/v2/tags` | 200, массив из 24 тегов (самый медленный роут) |
-| `GET /api/random`, `/api/latest` | 200, легаси-объект `{"id","text","sound":""}` — жив, но без `html`/`tags` |
-| `GET /api/latest/5`, `/api/random/censored`, `/api/random_by_tag/<tag>` | 404, тело — HTML Yii2 |
-| ошибки в конверте (`limit=0`, неизвестный тег) | **HTTP 200** + `{"status":"error","errors":["No advices"]}` |
+| Запрос                                                                  | Результат                                                                 |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `GET /api/v2/random-advices?limit=&startID=`                            | 200, конверт, `data` — **массив** советов (≤40)                           |
+| `GET /api/v2/random-advices-by-tag?tag=<alias>`                         | 200, массив советов тега; без `tag` → 400                                 |
+| `GET /api/v2/latest`                                                    | 200, `data` — **объект** совета                                           |
+| `GET /api/v2/tags`                                                      | 200, массив из 24 тегов (самый медленный роут)                            |
+| `GET /api/random`, `/api/latest`                                        | 200, легаси-объект `{"id","text","sound":""}` — жив, но без `html`/`tags` |
+| `GET /api/latest/5`, `/api/random/censored`, `/api/random_by_tag/<tag>` | 404, тело — HTML Yii2                                                     |
+| ошибки в конверте (`limit=0`, неизвестный тег)                          | **HTTP 200** + `{"status":"error","errors":["No advices"]}`               |
 
 Следствия для кода:
 

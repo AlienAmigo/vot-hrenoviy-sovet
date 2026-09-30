@@ -5,15 +5,15 @@ React Native + TypeScript + Expo SDK 57.
 
 ## Стек
 
-| Что | Зачем |
-|---|---|
-| Expo SDK 57 (`expo ~57.0.25`, RN `0.86.3`, React `19.2.3`) | prebuild/CNG, config plugins, EAS |
-| Шаблон `blank-typescript` | **без `expo-router`** — он тянет ~6.2 МБ и 2459 файлов плюс `reanimated`/`gesture-handler`/`screens`, а экран пока один |
-| `fetch` из коробки | без `axios` — в бандле разница нулевая |
-| Без навигации | 1 экран, `expo-router`/React Navigation не подключены |
+| Что                                                        | Зачем                                                                                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Expo SDK 57 (`expo ~57.0.25`, RN `0.86.3`, React `19.2.3`) | prebuild/CNG, config plugins, EAS                                                                                       |
+| Шаблон `blank-typescript`                                  | **без `expo-router`** — он тянет ~6.2 МБ и 2459 файлов плюс `reanimated`/`gesture-handler`/`screens`, а экран пока один |
+| `fetch` из коробки                                         | без `axios` — в бандле разница нулевая                                                                                  |
+| Без навигации                                              | 1 экран, `expo-router`/React Navigation не подключены                                                                   |
 
 Используемые зависимости: `expo`, `expo-build-properties`, `expo-status-bar`, `react`, `react-native`.
-Dev: `typescript`, `@types/react`.
+Dev: `typescript`, `@types/react`, `eslint` + `eslint-config-expo`, `prettier` + `eslint-config-prettier`.
 
 ## Команды
 
@@ -23,6 +23,8 @@ export PATH="$HOME/.nvm/versions/node/v22.19.0/bin:$PATH"
 
 npm install          # установка зависимостей
 npm run typecheck    # tsc --noEmit
+npm run lint         # eslint .
+npm run format       # prettier --write .
 npm run check:api    # живая проверка API + юнит-проверки парсера
 npm start            # expo start
 npm run android      # expo run:android (нужен prebuild)
@@ -42,16 +44,16 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 Сайт ходит в **недокументированный `/api/v2/*`**; публичная документация описывает только
 легаси v1. Реальность с учётом ТЗ — в `src/api/advice.ts`, полная — в `src/api/api_v2.md`:
 
-| Эндпоинт | Результат |
-|---|---|
-| `GET /api/v2/random-advices?limit=&startID=` | ✅ 200, конверт, `data` — **массив** советов (≤40 за запрос) |
-| `GET /api/v2/random-advices-by-tag?tag=<alias>` | ✅ 200, массив советов тега; без `tag` → 400 |
-| `GET /api/v2/latest` | ✅ 200, `data` — **объект** совета (`html`, `tags`) |
-| `GET /api/v2/tags` | ✅ 200, 24 тега — есть alias'ы и вне списка (секретные: `driving`, `kids`, …) |
-| `GET /api/random`, `/api/latest` | ⚠️ 200, легаси без `html`/`tags` — жив, но не используется |
-| `GET /api/latest/5` | ❌ 404, тело — HTML-страница Yii2 |
-| `GET /api/random/censored/` | ❌ 301 → 404 |
-| `GET /api/random_by_tag/<tag>` | ❌ 404 |
+| Эндпоинт                                        | Результат                                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| `GET /api/v2/random-advices?limit=&startID=`    | ✅ 200, конверт, `data` — **массив** советов (≤40 за запрос)                  |
+| `GET /api/v2/random-advices-by-tag?tag=<alias>` | ✅ 200, массив советов тега; без `tag` → 400                                  |
+| `GET /api/v2/latest`                            | ✅ 200, `data` — **объект** совета (`html`, `tags`)                           |
+| `GET /api/v2/tags`                              | ✅ 200, 24 тега — есть alias'ы и вне списка (секретные: `driving`, `kids`, …) |
+| `GET /api/random`, `/api/latest`                | ⚠️ 200, легаси без `html`/`tags` — жив, но не используется                    |
+| `GET /api/latest/5`                             | ❌ 404, тело — HTML-страница Yii2                                             |
+| `GET /api/random/censored/`                     | ❌ 301 → 404                                                                  |
+| `GET /api/random_by_tag/<tag>`                  | ❌ 404                                                                        |
 
 Следствия:
 

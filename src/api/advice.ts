@@ -82,15 +82,15 @@ export class AdviceApiError extends Error {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
-}
+};
 
 const isString = (value: unknown): value is string => {
   return typeof value === 'string';
-}
+};
 
 const isAbortError = (error: unknown): boolean => {
   return error instanceof Error && error.name === 'AbortError';
-}
+};
 
 /**
  * Валидирует обязательные поля совета. Опциональные (html/tags/conclusions) проверяет
@@ -101,7 +101,7 @@ export const isAdvice = (value: unknown): value is Advice => {
     return false;
   }
   return typeof value.id === 'number' && typeof value.text === 'string' && value.text.length > 0;
-}
+};
 
 /** Валидирует продолжение совета. */
 export const isAdviceConclusion = (value: unknown): value is AdviceConclusion => {
@@ -111,7 +111,7 @@ export const isAdviceConclusion = (value: unknown): value is AdviceConclusion =>
     typeof value.text === 'string' &&
     value.text.length > 0
   );
-}
+};
 
 /** Обязательные поля тега; остальные читаются как unknown. */
 interface RawTagFields extends Record<string, unknown> {
@@ -127,7 +127,7 @@ const isRawTag = (value: unknown): value is RawTagFields => {
     typeof value.name === 'string' &&
     typeof value.alias === 'string'
   );
-}
+};
 
 /** Копирует только известные поля: сервер может прислать и лишнее, и мусор вместо типа. */
 const normalizeAdvice = (candidate: Advice): Advice => {
@@ -149,7 +149,7 @@ const normalizeAdvice = (candidate: Advice): Advice => {
     advice.conclusions = candidate.conclusions.filter(isAdviceConclusion);
   }
   return advice;
-}
+};
 
 /** Копирует известные поля тега, приводя isDefault (в ответе 0/1) к boolean. */
 const toAdviceTag = (raw: RawTagFields): AdviceTag => {
@@ -178,7 +178,7 @@ const toAdviceTag = (raw: RawTagFields): AdviceTag => {
     tag.advicesCount = raw.advicesCount;
   }
   return tag;
-}
+};
 
 /**
  * Разметка сайта -> плоский текст: <br> это перевод строки, теги и HTML-сущности снимаются.
@@ -195,7 +195,7 @@ export const htmlToText = (html: string): string => {
     .replace(/&gt;/gi, '>')
     .replace(/&amp;/gi, '&')
     .trim();
-}
+};
 /** Универсальный GET с одинаковыми guard'ами. `path` — путь относительно API_BASE_URL. */
 const requestJson = async (path: string, externalSignal?: AbortSignal): Promise<unknown> => {
   const controller = new AbortController();
@@ -250,7 +250,7 @@ const requestJson = async (path: string, externalSignal?: AbortSignal): Promise<
     clearTimeout(timeout);
     externalSignal?.removeEventListener('abort', relayAbort);
   }
-}
+};
 
 /** Достаёт `data` из конверта v2; status:"error" превращает в AdviceApiError (HTTP там 200!). */
 const unwrapEnvelope = (payload: unknown): unknown => {
@@ -259,13 +259,15 @@ const unwrapEnvelope = (payload: unknown): unknown => {
   }
   if (payload.status !== 'success') {
     const errors = Array.isArray(payload.errors) ? payload.errors.filter(isString) : [];
-    throw new AdviceApiError(`API вернул ошибку${errors.length > 0 ? `: ${errors.join('; ')}` : ''}`);
+    throw new AdviceApiError(
+      `API вернул ошибку${errors.length > 0 ? `: ${errors.join('; ')}` : ''}`,
+    );
   }
   if (payload.data === undefined) {
     throw new AdviceApiError('В ответе API нет поля data');
   }
   return payload.data;
-}
+};
 /** Разбирает конверт с одиночным советом (ручка latest). */
 export const parseAdvice = (payload: unknown): Advice => {
   const candidate = unwrapEnvelope(payload);
@@ -273,7 +275,7 @@ export const parseAdvice = (payload: unknown): Advice => {
     throw new AdviceApiError('Неожиданная структура ответа API');
   }
   return normalizeAdvice(candidate);
-}
+};
 
 /** Разбирает конверт со списком советов (ручка random-advices). Пустой список допустим. */
 export const parseAdviceList = (payload: unknown): readonly Advice[] => {
@@ -291,7 +293,7 @@ export const parseAdviceList = (payload: unknown): readonly Advice[] => {
     advices.push(normalizeAdvice(item));
   }
   return advices;
-}
+};
 
 /** Проверяет id до запроса: на мусор сервер отвечает случайным советом, а не ошибкой. */
 const normalizeAdviceId = (id: number): number => {
@@ -299,7 +301,7 @@ const normalizeAdviceId = (id: number): number => {
     throw new AdviceApiError(`Некорректный id совета: ${String(id)}`);
   }
   return id;
-}
+};
 
 /** Приводит limit к допустимому: целое ≥ 1 и не больше MAX_BATCH_SIZE. */
 const normalizeLimit = (limit: number): number => {
@@ -307,7 +309,7 @@ const normalizeLimit = (limit: number): number => {
     throw new AdviceApiError(`Некорректный limit: ${String(limit)}`);
   }
   return Math.min(limit, MAX_BATCH_SIZE);
-}
+};
 
 /**
  * Советы из v2: без параметров — случайный батч; с `tag` — случайные советы тега;
@@ -334,7 +336,7 @@ export const fetchAdvices = async (
   }
 
   return parseAdviceList(await requestJson(path, signal));
-}
+};
 
 /**
  * Конкретный совет по id. Отдельной ручки нет: startID у random-advices ставит нужный
@@ -348,12 +350,12 @@ export const fetchAdviceById = async (id: number, signal?: AbortSignal): Promise
     throw new AdviceApiError(`Совет #${adviceId} не найден`);
   }
   return first;
-}
+};
 
 /** Последний (сегодняшний) совет. */
 export const fetchLatestAdvice = async (signal?: AbortSignal): Promise<Advice> => {
   return parseAdvice(await requestJson('latest', signal));
-}
+};
 
 /** Справочник тегов. `alias` — значение для query `tag`. */
 export const fetchTags = async (signal?: AbortSignal): Promise<readonly AdviceTag[]> => {
@@ -370,4 +372,4 @@ export const fetchTags = async (signal?: AbortSignal): Promise<readonly AdviceTa
     }
   }
   return tags;
-}
+};

@@ -32,7 +32,7 @@ const assert = (condition: boolean, label: string): void => {
     failures += 1;
     console.error(`  FAIL ${label}`);
   }
-}
+};
 
 /** Проверяет, что вызов падает AdviceApiError, и возвращает текст ошибки для доп. проверок. */
 const expectApiError = async (
@@ -53,11 +53,11 @@ const expectApiError = async (
     console.log(`  ok   ${label} (${error.message})`);
     return error.message;
   }
-}
+};
 
 const section = (title: string): void => {
   console.log(`\n${title}`);
-}
+};
 
 /** Ответ «сырого» запроса мимо модуля. */
 interface RawResponse {
@@ -75,7 +75,7 @@ const rawOnce = async (path: string): Promise<RawResponse> => {
     body: await response.text(),
     headers: response.headers,
   };
-}
+};
 
 /**
  * «Сырой» GET: фиксируем поведение сервера, а не нашего кода.
@@ -88,7 +88,7 @@ const rawGet = async (path: string): Promise<RawResponse> => {
     last = await rawOnce(path);
   }
   return last;
-}
+};
 
 /**
  * Живой вызов модуля с повторами: сервер флапает 500/HTML, а проверяем мы контракт API,
@@ -115,7 +115,7 @@ const live = async <T>(call: () => Promise<T>): Promise<T> => {
     }
   }
   throw lastError;
-}
+};
 
 const main = async (): Promise<void> => {
   section('Чистые проверки разбора конверта v2');
@@ -145,7 +145,10 @@ const main = async (): Promise<void> => {
       { id: 2, text: 'Второй' },
     ],
   };
-  assert(parseAdviceList(listEnvelope).length === 2, 'data-массив (random-advices) разбирается в список');
+  assert(
+    parseAdviceList(listEnvelope).length === 2,
+    'data-массив (random-advices) разбирается в список',
+  );
   assert(
     parseAdviceList({ status: 'success', errors: [], data: [] }).length === 0,
     'пустой список допустим',
@@ -179,13 +182,16 @@ const main = async (): Promise<void> => {
     async () => parseAdviceList({ status: 'success', errors: [], data: { id: 1, text: 'объект' } }),
     'объект вместо массива у random-advices отклоняется',
   );
-  await expectApiError(async () => parseAdvice('просто строка'), 'строка вместо конверта отклоняется');
+  await expectApiError(
+    async () => parseAdvice('просто строка'),
+    'строка вместо конверта отклоняется',
+  );
   await expectApiError(
     async () => parseAdviceList([{ id: 1, text: 'голый массив' }]),
     'массив без конверта отклоняется',
   );
 
-  const invalidAdvices: Array<[unknown, string]> = [
+  const invalidAdvices: [unknown, string][] = [
     [{ id: 1, text: '' }, 'пустой text отклоняется'],
     [{ text: 'нет id' }, 'отсутствие id отклоняется'],
     [{ id: '1', text: 'id-строка' }, 'строковый id отклоняется'],
@@ -211,7 +217,10 @@ const main = async (): Promise<void> => {
     htmlToText('Разреши<br>блять<br>себе<br>отдохнуть!') === 'Разреши\nблять\nсебе\nотдохнуть!',
     'htmlToText: <br> -> перевод строки',
   );
-  assert(htmlToText('Умей<br/>блять заткнуться!') === 'Умей\nблять заткнуться!', 'htmlToText: <br/> тоже');
+  assert(
+    htmlToText('Умей<br/>блять заткнуться!') === 'Умей\nблять заткнуться!',
+    'htmlToText: <br/> тоже',
+  );
   assert(
     htmlToText('<span class="heighten">делай<br>в&nbsp;одиночку!</span>') === 'делай\nв одиночку!',
     'htmlToText: теги снимаются, &nbsp; -> пробел',
@@ -225,7 +234,10 @@ const main = async (): Promise<void> => {
 
   await expectApiError(async () => fetchAdvices({ limit: 0 }), 'limit=0 отклоняется до запроса');
   await expectApiError(async () => fetchAdvices({ limit: 2.5 }), 'дробный limit отклоняется');
-  await expectApiError(async () => fetchAdvices({ startID: -1 }), 'отрицательный startID отклоняется');
+  await expectApiError(
+    async () => fetchAdvices({ startID: -1 }),
+    'отрицательный startID отклоняется',
+  );
   await expectApiError(async () => fetchAdviceById(0), 'fetchAdviceById(0) отклоняется до запроса');
   await expectApiError(async () => fetchAdviceById(1.5), 'дробный id отклоняется');
   section('Живые запросы к API');
@@ -242,7 +254,10 @@ const main = async (): Promise<void> => {
     batch.every((advice) => typeof advice.html === 'string' && advice.html.length > 0),
     'у каждого совета непустой html',
   );
-  assert(batch.every((advice) => Array.isArray(advice.tags)), 'у каждого совета есть tags');
+  assert(
+    batch.every((advice) => Array.isArray(advice.tags)),
+    'у каждого совета есть tags',
+  );
   const firstAdvice = batch[0];
   if (firstAdvice !== undefined) {
     assert(firstAdvice.text.length > 0, 'text непустой');
@@ -256,7 +271,10 @@ const main = async (): Promise<void> => {
   assert(limited.length > 0 && limited.length <= 3, `limit=3 -> ${limited.length} советов`);
 
   const clamped = await live(() => fetchAdvices({ limit: 1000 }));
-  assert(clamped.length <= MAX_BATCH_SIZE, `limit=1000 урезан -> ${clamped.length} (<= ${MAX_BATCH_SIZE})`);
+  assert(
+    clamped.length <= MAX_BATCH_SIZE,
+    `limit=1000 урезан -> ${clamped.length} (<= ${MAX_BATCH_SIZE})`,
+  );
 
   const startId = 25852;
   const fromStart = await live(() => fetchAdvices({ limit: 5, startID: startId }));
@@ -357,7 +375,7 @@ const main = async (): Promise<void> => {
     throw new Error(`Провалено проверок: ${failures}`);
   }
   console.log('  Все проверки пройдены.');
-}
+};
 
 main().catch((error: unknown) => {
   console.error(`\n${error instanceof Error ? error.message : String(error)}`);
