@@ -35,7 +35,8 @@ Dev: `typescript`, `@types/react`. Больше ничего.
    `axios`, хранилища (`MMKV`, `@react-native-async-storage/async-storage`), `expo-updates`.
    Причина — размер приложения. Если кажется, что библиотека нужна — сначала объясни зачем
    и предложи альтернативу без зависимости.
-3. **Ответ API — объект, а не массив** (см. ниже). Не доверяй ТЗ, доверяй живому ответу.
+3. **Ответ API — конверт `{status, errors, data}` с HTTP 200 даже у ошибок** (см. ниже).
+   Не доверяй ТЗ, доверяй живому ответу: у `random-advices` `data` — массив, у `latest` — объект.
 4. **Обязательна проверка `content-type`** перед `response.json()` — на мёртвых роутах сервер
    отдаёт HTML, и `json()` бросит невнятное исключение.
 5. **Не менять `android.package` (`ru.vot.advice`) и `scheme` (`votadvice`)** после первого
@@ -56,7 +57,7 @@ export PATH="$HOME/.nvm/versions/node/v22.19.0/bin:$PATH"
 
 npm install
 npm run typecheck     # tsc --noEmit — прогнать ПЕРЕД финалом
-npm run check:api     # 21 проверка: парсер + живые запросы к API
+npm run check:api     # 65 проверок: парсер + живые запросы к API
 npm start              # expo start
 npm run android        # expo run:android (нужен prebuild)
 npx expo prebuild --platform android
@@ -77,40 +78,51 @@ assets/             # иконки, splash
 android/            # сгенерировано prebuild, в git не входит
 ```
 
-`src/api/advice.ts` экспортирует: `Advice`, `AdviceEndpoint`, `AdviceApiError`, `isAdvice`,
-`parseAdvice`, `fetchAdvice`, `fetchAdviceByPath`, `fetchRandomAdvice`, `fetchLatestAdvice`,
-`API_BASE_URL`, `REQUEST_TIMEOUT_MS`.
+`src/api/advice.ts` экспортирует: `Advice`, `AdviceConclusion`, `AdviceTag`, `AdviceQuery`,
+`AdviceApiError`, `isAdvice`, `isAdviceConclusion`, `parseAdvice`, `parseAdviceList`,
+`htmlToText`, `fetchAdvices`, `fetchAdviceById`, `fetchLatestAdvice`, `fetchTags`,
+`API_BASE_URL`, `REQUEST_TIMEOUT_MS`, `MAX_BATCH_SIZE`.
 
 Ходить в сеть напрямую из компонентов нельзя — только через этот модуль.
 
 ## API — факты, проверенные вживую
 
-Документация в ТЗ расходится с реальностью. Проверено 2026-09-25:
+Полная документация — `src/api/api_v2.md`. Проверено 2026-09-30. Сайт ходит в
+**недокументированный `/api/v2/*`**, страница документации описывает только легаси v1:
 
 | Запрос | Результат |
 |---|---|
-| `GET /api/random` | 200, JSON-**объект** `{"id":25852,"text":"...","sound":""}` |
-| `GET /api/latest` | 200, JSON-**объект** |
-| `GET /api/latest/5` | 404, тело — HTML-страница Yii2 |
-| `GET /api/random/censored/` | 301 → `/api/random/censored` → 404 |
-| `GET /api/random_by_tag/<tag>` | 404 (HTML), и для Cyrillic, и для латиницы |
+| `GET /api/v2/random-advices?limit=&startID=` | 200, конверт, `data` — **массив** советов (≤40) |
+| `GET /api/v2/random-advices-by-tag?tag=<alias>` | 200, массив советов тега; без `tag` → 400 |
+| `GET /api/v2/latest` | 200, `data` — **объект** совета |
+| `GET /api/v2/tags` | 200, массив из 24 тегов (самый медленный роут) |
+| `GET /api/random`, `/api/latest` | 200, легаси-объект `{"id","text","sound":""}` — жив, но без `html`/`tags` |
+| `GET /api/latest/5`, `/api/random/censored`, `/api/random_by_tag/<tag>` | 404, тело — HTML Yii2 |
+| ошибки в конверте (`limit=0`, неизвестный тег) | **HTTP 200** + `{"status":"error","errors":["No advices"]}` |
 
 Следствия для кода:
 
-- `type Advice = { id: number; text: string; sound?: string }`. Массив тоже парсим (на случай
-  починки API), но форма по умолчанию — объект.
-- `sound` присутствует в реальном ответе, в ТЗ его нет. Строку, сейчас всегда `""`.
-- Работают **только `random` и `latest`**. Истории на сервере нет → «свайп назад» возможен
-  только через локальный кэш, а дедуп по `id` обязателен (рандом отдаёт повторы).
-- Теги и цензурная версия **недоступны** — не пытаться реализовать на их API.
+- `Advice = { id, text, html?, tags?, conclusions? }` — `html` с разметкой сайта
+  (`<br>`, `<span>`), `tags` — массив alias'ов; `htmlToText` превращает html в плоский текст.
+- **`status` в конверте, а не HTTP-статус** — ошибки приходят с 200. Мёртвые роуты отдают
+  HTML → проверка `content-type` перед `json()` обязательна.
+- Работают только `limit`, `startID`, `tag`; незнакомые параметры (`censored`, `tags`, `count`)
+  сервер молча игнорирует. `startID` — **не хронология**: совет просто встаёт первым.
+- **Теги доступны**: `/api/v2/tags` + `random-advices-by-tag`; плюс 6 рабочих alias'ов вне
+  списка (`driving`, `kids`, `newyear`, `tricks`, `dentist`, `pool`). Фича на их основе —
+  отдельное решение, не делать самостоятельно.
+- Цензурной версии нет ни в v1, ни в v2 — маскировка матов только клиентская.
+- Истории на сервере нет → «свайп назад» возможен только через локальный кэш, а дедуп по `id`
+  обязателен (рандом отдаёт повторы).
 - `Cache-Control: no-store, no-cache, must-revalidate` — кэшировать на уровне HTTP нечего,
   каждый запрос идёт в origin. Не делать поллинг таймером.
-- Латентность ~0.15 с, auth не нужна (200 без cookies).
+- Изредка ручки флапают 500 (HTML `yii\base\ErrorException: preg_match(): JIT memory failed`) —
+  транзиентная ошибка сервера. Латентность ~40–130 мс, auth не нужна (200 без cookies).
 
 ## Конвенции кода
 
 - **Ошибки**: кидать только `AdviceApiError` (с HTTP-статусом, где он есть), не голый `Error`.
-  `fetchAdviceByPath` оборачивает сетевые/таймаут-ошибки, валидация выполняется уже вне `catch`.
+  `requestJson` оборачивает сетевые/таймаут-ошибки, валидация конверта выполняется уже вне `catch`.
 - **Не доверять форме данных**: любую нагрузку прогонять через `isAdvice`/`parseAdvice`.
 - **Никаких `any`** — только `unknown` + сужение.
 - Комментарии и сообщения об ошибках — на русском.
@@ -124,8 +136,10 @@ android/            # сгенерировано prebuild, в git не вход�
 
 - [x] Фаза 0 — каркас: `create-expo-app --template blank-typescript`, `.gitignore`, `app.json`
       (scheme/package/versionCode), `expo-build-properties` с R8 + shrinkResources, README
-- [x] Фаза 1 — `src/api/advice.ts` + `scripts/check-api.ts` (21 проверка)
-- [x] Валидация: `tsc --noEmit` чисто, `check:api` 21/21, `expo-doctor` 21/21, `prebuild` OK
+- [x] Фаза 1 — `src/api/advice.ts` + `scripts/check-api.ts` (65 проверок)
+- [x] Миграция на API v2: `src/api/api_v2.md` (фактическая документация), проверки устойчивы
+      к флапающему 500 (до 3 попыток с паузой)
+- [x] Валидация: `tsc --noEmit` чисто, `check:api` 65/65, `expo-doctor` 21/21, `prebuild` OK
 
 Дальше:
 

@@ -37,26 +37,34 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 - `ANDROID_HOME` **не задан** → путь прописан в `android/local.properties` (`sdk.dir=...`).
   Файл находится внутри gitignore-каталога `/android`, поэтому при первом prebuild его нужно создать заново.
 
-## Данные API (живая проверка 2026-09-25)
+## Данные API (живая проверка 2026-09-30)
 
-Реальность расходится с ТЗ — это учтено в `src/api/advice.ts`:
+Сайт ходит в **недокументированный `/api/v2/*`**; публичная документация описывает только
+легаси v1. Реальность с учётом ТЗ — в `src/api/advice.ts`, полная — в `src/api/api_v2.md`:
 
 | Эндпоинт | Результат |
 |---|---|
-| `GET /api/random` | ✅ 200, JSON-**объект** `{"id":25852,"text":"...","sound":""}` |
-| `GET /api/latest` | ✅ 200, JSON-**объект** |
+| `GET /api/v2/random-advices?limit=&startID=` | ✅ 200, конверт, `data` — **массив** советов (≤40 за запрос) |
+| `GET /api/v2/random-advices-by-tag?tag=<alias>` | ✅ 200, массив советов тега; без `tag` → 400 |
+| `GET /api/v2/latest` | ✅ 200, `data` — **объект** совета (`html`, `tags`) |
+| `GET /api/v2/tags` | ✅ 200, 24 тега — есть alias'ы и вне списка (секретные: `driving`, `kids`, …) |
+| `GET /api/random`, `/api/latest` | ⚠️ 200, легаси без `html`/`tags` — жив, но не используется |
 | `GET /api/latest/5` | ❌ 404, тело — HTML-страница Yii2 |
 | `GET /api/random/censored/` | ❌ 301 → 404 |
 | `GET /api/random_by_tag/<tag>` | ❌ 404 |
 
 Следствия:
 
-1. **Тип ответа — объект, а не массив.** Массив тоже парсим (на случай починки API).
+1. **Ответ — конверт `{status, errors, data}`, ошибки приходят с HTTP 200** — проверяем
+   поле `status`. `data` у `random-advices` массив, у `latest` — объект.
 2. **Обязательна проверка `content-type`**, иначе `response.json()` бросит исключение на HTML-404.
-3. **Истории на сервере нет** (`/api/latest/N` мёртв) → «свайп назад» возможен только через локальный кэш.
-4. **Теги и цензурная версия недоступны** — вынесены за рамки первой версии.
+3. **Истории на сервере нет** (`/api/latest/N` мёртв) → «свайп назад» возможен только через
+   локальный кэш; дедуп по `id` обязателен (рандом отдаёт повторы).
+4. **Теги доступны** (`/api/v2/tags` + `random-advices-by-tag`), но фича на их основе —
+   отдельное решение. **Цензурной версии нет** — маскировка матов только клиентская.
 5. **`Cache-Control: no-store`** — кэшировать на уровне HTTP нечего, каждый запрос идёт в origin.
 6. **Только HTTPS** — Android 9+ блокирует cleartext-трафик по умолчанию.
+7. **`startID` — не хронология** (совет просто встаёт первым), лимит выборки — 40.
 
 ## Компактность сборки
 
@@ -83,9 +91,10 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 - [x] `.gitignore` (+ `.idea/`), `android/`, `ios/`, `.expo/` игнорируются
 - [x] `app.json`: `scheme: votadvice`, `android.package: ru.vot.advice`, `versionCode: 1`
 - [x] `expo-build-properties` с R8 + shrinkResources
-- [x] `src/api/advice.ts` — HTTP-слой с валидацией и обработкой ошибок
+- [x] `src/api/advice.ts` — HTTP-слой (API v2) с валидацией и обработкой ошибок
+- [x] `src/api/api_v2.md` — фактическая документация API (собрана живыми запросами)
 - [x] `npm run typecheck` — без ошибок
-- [x] `npm run check:api` — 21 проверка, включая живые запросы
+- [x] `npm run check:api` — 65 проверок, включая живые запросы
 - [x] `npx expo prebuild --platform android` — конфиг валиден
 
 Дальше:
