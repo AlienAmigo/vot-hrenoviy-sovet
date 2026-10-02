@@ -12,3 +12,12 @@ export const MAX_BATCH_SIZE = 40;
 
 /** Длительность анимации свайпа, мс. */
 export const SWIPE_ANIMATION_DURATION = 300;
+
+/** Порог сдвига (px), после которого свайп считается совершённым. */
+export const SWIPE_THRESHOLD = 100;
+
+/** Дистанция вылета карточки за экран при свайпе, px. */
+export const SWIPE_DISTANCE = 500;
+
+/** Длительность возврата карточки в исходное положение, мс. */
+export const SWIPE_ROLLBACK_DURATION = 200;

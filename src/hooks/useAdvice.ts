@@ -1,25 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchAdvices } from '@api/advice';
+import type { Advice } from '@types';
 
 interface UseAdviceResult {
-  advice: any | null;
+  advice: Advice | null;
   loading: boolean;
   error: string | null;
   fetchNewAdvice: () => Promise<void>;
 }
 
 export const useAdvice = (): UseAdviceResult => {
-  const [advice, setAdvice] = useState<any | null>(null);
+  const [advice, setAdvice] = useState<Advice | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchNewAdvice = async () => {
+  const fetchNewAdvice = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const advices = await fetchAdvices({ limit: 1 });
-      if (advices.length > 0) {
-        setAdvice(advices[0]);
+      const first = advices[0];
+      if (first !== undefined) {
+        setAdvice(first);
       } else {
         setError('Не удалось получить совет');
         setAdvice(null);
@@ -31,12 +33,16 @@ export const useAdvice = (): UseAdviceResult => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Загружаем первый совет при инициализации
   useEffect(() => {
-    fetchNewAdvice();
-  }, []);
+    const loadInitialAdvice = async () => {
+      await fetchNewAdvice();
+    };
+
+    loadInitialAdvice();
+  }, [fetchNewAdvice]);
 
   return { advice, loading, error, fetchNewAdvice };
 };

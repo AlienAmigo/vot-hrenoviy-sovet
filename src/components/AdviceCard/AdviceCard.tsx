@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ImageBackground,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { useAdvice } from '@hooks/useAdvice';
+import {
+  SWIPE_ANIMATION_DURATION,
+  SWIPE_DISTANCE,
+  SWIPE_ROLLBACK_DURATION,
+  SWIPE_THRESHOLD,
+} from '@config';
+import { htmlToText } from '@api/advice';
 
 interface AdviceCardProps {
   backgroundImageUrl?: string;
@@ -22,45 +31,80 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
   onAdviceTap,
 }) => {
   const { advice, loading, error, fetchNewAdvice } = useAdvice();
-  const [isSwiping, setIsSwiping] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(
-    null,
+
+  // Сдвиг карточки по X. Вращение и масштаб выводятся интерполяцией.
+  const translateX = useMemo(() => new Animated.Value(0), []);
+
+  // Возврат карточки в исходное положение (свайп не дотянули).
+  const resetPosition = useCallback(() => {
+    Animated.timing(translateX, {
+      toValue: 0,
+      duration: SWIPE_ROLLBACK_DURATION,
+      useNativeDriver: true,
+    }).start();
+  }, [translateX]);
+
+  // Досвипывание за экран, затем сброс позиции и подгрузка нового совета.
+  const completeSwipe = useCallback(
+    (direction: 'left' | 'right') => {
+      const target = direction === 'right' ? SWIPE_DISTANCE : -SWIPE_DISTANCE;
+
+      Animated.timing(translateX, {
+        toValue: target,
+        duration: SWIPE_ANIMATION_DURATION,
+        useNativeDriver: true,
+      }).start(() => {
+        translateX.setValue(0);
+        if (direction === 'left') {
+          onSwipeLeft?.();
+        } else {
+          onSwipeRight?.();
+        }
+        void fetchNewAdvice();
+      });
+    },
+    [translateX, onSwipeLeft, onSwipeRight, fetchNewAdvice],
   );
 
-  useEffect(() => {
-    if (advice) {
-      // Reset swipe state when new advice is loaded
-      setIsSwiping(false);
-      setSwipeDirection(null);
-    }
-  }, [advice]);
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        // Перехватываем жест только на заметном горизонтальном сдвиге,
+        // иначе тап остаётся за TouchableOpacity.
+        onMoveShouldSetPanResponder: (_event, gesture) =>
+          Math.abs(gesture.dx) > 10 &&
+          Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderMove: (_event, gesture) => {
+          translateX.setValue(gesture.dx);
+        },
+        onPanResponderRelease: (_event, gesture) => {
+          if (gesture.dx > SWIPE_THRESHOLD) {
+            completeSwipe('right');
+          } else if (gesture.dx < -SWIPE_THRESHOLD) {
+            completeSwipe('left');
+          } else {
+            resetPosition();
+          }
+        },
+        onPanResponderTerminate: resetPosition,
+      }),
+    [completeSwipe, resetPosition, translateX],
+  );
 
-  const handleSwipe = (direction: 'left' | 'right') => {
-    setIsSwiping(true);
-    setSwipeDirection(direction);
+  const handleAdviceTap = useCallback(() => {
+    onAdviceTap?.();
+    void fetchNewAdvice();
+  }, [onAdviceTap, fetchNewAdvice]);
 
-    if (direction === 'left' && onSwipeLeft) {
-      onSwipeLeft();
-    } else if (direction === 'right' && onSwipeRight) {
-      onSwipeRight();
-    }
+  const rotation = translateX.interpolate({
+    inputRange: [-SWIPE_DISTANCE, 0, SWIPE_DISTANCE],
+    outputRange: ['-15deg', '0deg', '15deg'],
+  });
 
-    // Reset swipe state after animation
-    setTimeout(() => {
-      setIsSwiping(false);
-      setSwipeDirection(null);
-    }, 300); // Match the animation duration
-  };
-
-  const handleAdviceTap = () => {
-    if (onAdviceTap) {
-      onAdviceTap();
-    }
-    fetchNewAdvice();
-  };
-
-  const handleSwipeLeft = () => handleSwipe('left');
-  const handleSwipeRight = () => handleSwipe('right');
+  const scale = translateX.interpolate({
+    inputRange: [-SWIPE_DISTANCE, 0, SWIPE_DISTANCE],
+    outputRange: [0.9, 1, 0.9],
+  });
 
   return (
     <View style={styles.container}>
@@ -74,10 +118,12 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
         </ImageBackground>
       ) : null}
 
-      <View
+      <Animated.View
+        {...panResponder.panHandlers}
         style={[
           styles.card,
           backgroundImageUrl ? styles.cardWithBackground : null,
+          { transform: [{ translateX }, { rotate: rotation }, { scale }] },
         ]}
       >
         {loading ? (
@@ -97,49 +143,9 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
         ) : (
           <Text style={styles.text}>No advice available</Text>
         )}
-
-        {/* Swipe indicators */}
-        {isSwiping && swipeDirection && (
-          <View
-            style={[
-              styles.swipeIndicator,
-              swipeDirection === 'left' ? styles.leftSwipe : styles.rightSwipe,
-            ]}
-          >
-            <Text style={styles.swipeText}>
-              {swipeDirection === 'left' ? '←' : '→'}
-            </Text>
-          </View>
-        )}
-      </View>
+      </Animated.View>
     </View>
   );
-};
-
-// HTML to text conversion function
-const htmlToText = (html: string): string => {
-  if (!html) return '';
-
-  // Replace <br> tags with newlines
-  let text = html.replace(/<br\s*\/?>/gi, '\n');
-
-  // Remove other HTML tags
-  text = text.replace(/<[^>]*>/g, '');
-
-  // Replace &nbsp; with regular spaces
-  text = text.replace(/&nbsp;/g, ' ');
-
-  // Replace &amp; with &
-  text = text.replace(/&amp;/g, '&');
-
-  // Replace &lt; with <
-  text = text.replace(/&lt;/g, '<');
-
-  // Replace &gt; with >
-  text = text.replace(/&gt;/g, '>');
-
-  // Trim whitespace
-  return text.trim();
 };
 
 const styles = StyleSheet.create({
@@ -191,10 +197,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scrollView: {
-    flex: 1,
-    width: '100%',
-  },
   text: {
     fontSize: 18,
     textAlign: 'center',
@@ -207,26 +209,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#d32f2f',
     fontWeight: '500',
-  },
-  swipeIndicator: {
-    position: 'absolute',
-    top: 20,
-    padding: 10,
-    borderRadius: 20,
-    opacity: 0.8,
-  },
-  leftSwipe: {
-    left: 20,
-    backgroundColor: '#f57c00',
-  },
-  rightSwipe: {
-    right: 20,
-    backgroundColor: '#4caf50',
-  },
-  swipeText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
   },
 });
 
