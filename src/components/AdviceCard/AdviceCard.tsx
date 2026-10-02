@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ImageBackground,
+} from 'react-native';
 import { useAdvice } from '@hooks/useAdvice';
-import { SWIPE_ANIMATION_DURATION } from '@config/constants';
 
 interface AdviceCardProps {
   backgroundImageUrl?: string;
@@ -16,141 +21,133 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
   onSwipeRight,
   onAdviceTap,
 }) => {
-  const { advice, isLoading, error, fetchNewAdvice } = useAdvice();
+  const { advice, loading, error, fetchNewAdvice } = useAdvice();
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(
     null,
   );
 
-  // Обработка свайпа
-  const handleSwipe = (direction: 'left' | 'right') => {
-    setSwipeDirection(direction);
-    setIsSwiping(true);
-
-    // После анимации свайпа вызываем обработчик и получаем новый совет
-    setTimeout(() => {
-      if (direction === 'left' && onSwipeLeft) {
-        onSwipeLeft();
-      } else if (direction === 'right' && onSwipeRight) {
-        onSwipeRight();
-      }
-
-      // Получаем новый совет после свайпа
-      fetchNewAdvice();
-
+  useEffect(() => {
+    if (advice) {
+      // Reset swipe state when new advice is loaded
       setIsSwiping(false);
       setSwipeDirection(null);
-    }, SWIPE_ANIMATION_DURATION); // Длительность анимации свайпа из констант
+    }
+  }, [advice]);
+
+  const handleSwipe = (direction: 'left' | 'right') => {
+    setIsSwiping(true);
+    setSwipeDirection(direction);
+
+    if (direction === 'left' && onSwipeLeft) {
+      onSwipeLeft();
+    } else if (direction === 'right' && onSwipeRight) {
+      onSwipeRight();
+    }
+
+    // Reset swipe state after animation
+    setTimeout(() => {
+      setIsSwiping(false);
+      setSwipeDirection(null);
+    }, 300); // Match the animation duration
   };
 
-  // Отображение состояния загрузки
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        {/* Фоновое изображение */}
-        {backgroundImageUrl ? (
-          <Image
-            source={{ uri: backgroundImageUrl }}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.defaultBackground} />
-        )}
+  const handleAdviceTap = () => {
+    if (onAdviceTap) {
+      onAdviceTap();
+    }
+    fetchNewAdvice();
+  };
 
-        {/* Контент карточки */}
-        <View
-          style={[
-            styles.cardContent,
-            isSwiping && swipeDirection === 'left'
-              ? styles.swipeLeft
-              : isSwiping && swipeDirection === 'right'
-                ? styles.swipeRight
-                : {},
-          ]}
-        >
-          <Text style={styles.adviceText}>Загрузка совета...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // Отображение ошибки
-  if (error) {
-    return (
-      <View style={styles.container}>
-        {/* Фоновое изображение */}
-        {backgroundImageUrl ? (
-          <Image
-            source={{ uri: backgroundImageUrl }}
-            style={styles.backgroundImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.defaultBackground} />
-        )}
-
-        {/* Контент карточки */}
-        <View
-          style={[
-            styles.cardContent,
-            isSwiping && swipeDirection === 'left'
-              ? styles.swipeLeft
-              : isSwiping && swipeDirection === 'right'
-                ? styles.swipeRight
-                : {},
-          ]}
-        >
-          <Text style={styles.adviceText}>{error}</Text>
-        </View>
-      </View>
-    );
-  }
+  const handleSwipeLeft = () => handleSwipe('left');
+  const handleSwipeRight = () => handleSwipe('right');
 
   return (
     <View style={styles.container}>
-      {/* Фоновое изображение */}
       {backgroundImageUrl ? (
-        <Image
+        <ImageBackground
           source={{ uri: backgroundImageUrl }}
           style={styles.backgroundImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={styles.defaultBackground} />
-      )}
+          imageStyle={styles.imageStyle}
+        >
+          <View style={styles.overlay} />
+        </ImageBackground>
+      ) : null}
 
-      {/* Контент карточки */}
       <View
         style={[
-          styles.cardContent,
-          isSwiping && swipeDirection === 'left'
-            ? styles.swipeLeft
-            : isSwiping && swipeDirection === 'right'
-              ? styles.swipeRight
-              : {},
+          styles.card,
+          backgroundImageUrl ? styles.cardWithBackground : null,
         ]}
       >
-        <TouchableOpacity
-          style={styles.touchableArea}
-          onPress={onAdviceTap}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.adviceText}>{advice}</Text>
-        </TouchableOpacity>
+        {loading ? (
+          <Text style={styles.text}>Loading advice...</Text>
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : advice ? (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleAdviceTap}
+            style={styles.adviceContainer}
+          >
+            <Text style={styles.text}>
+              {advice.html ? htmlToText(advice.html) : advice.text}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.text}>No advice available</Text>
+        )}
 
-        {/* Индикаторы свайпа (удалены, так как свайп происходит при движении пальца) */}
+        {/* Swipe indicators */}
+        {isSwiping && swipeDirection && (
+          <View
+            style={[
+              styles.swipeIndicator,
+              swipeDirection === 'left' ? styles.leftSwipe : styles.rightSwipe,
+            ]}
+          >
+            <Text style={styles.swipeText}>
+              {swipeDirection === 'left' ? '←' : '→'}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
 };
 
+// HTML to text conversion function
+const htmlToText = (html: string): string => {
+  if (!html) return '';
+
+  // Replace <br> tags with newlines
+  let text = html.replace(/<br\s*\/?>/gi, '\n');
+
+  // Remove other HTML tags
+  text = text.replace(/<[^>]*>/g, '');
+
+  // Replace &nbsp; with regular spaces
+  text = text.replace(/&nbsp;/g, ' ');
+
+  // Replace &amp; with &
+  text = text.replace(/&amp;/g, '&');
+
+  // Replace &lt; with <
+  text = text.replace(/&lt;/g, '<');
+
+  // Replace &gt; with >
+  text = text.replace(/&gt;/g, '>');
+
+  // Trim whitespace
+  return text.trim();
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'relative',
-    width: '100%',
-    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   backgroundImage: {
     position: 'absolute',
@@ -158,55 +155,78 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    width: '100%',
-    height: '100%',
+    resizeMode: 'cover',
   },
-  defaultBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#f0f0f0',
-    width: '100%',
-    height: '100%',
+  imageStyle: {
+    opacity: 0.3, // Subtle background effect
   },
-  cardContent: {
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Light overlay for better text readability
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    margin: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
-    elevation: 5,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    zIndex: 1,
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+    position: 'relative',
   },
-  swipeLeft: {
-    transform: [{ translateX: -100 }],
+  cardWithBackground: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent background when image is present
   },
-  swipeRight: {
-    transform: [{ translateX: 100 }],
-  },
-  touchableArea: {
+  adviceContainer: {
     flex: 1,
     width: '100%',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  adviceText: {
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  text: {
+    fontSize: 18,
+    textAlign: 'center',
+    lineHeight: 24,
+    color: '#333',
+    fontWeight: '400',
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#d32f2f',
+    fontWeight: '500',
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    top: 20,
+    padding: 10,
+    borderRadius: 20,
+    opacity: 0.8,
+  },
+  leftSwipe: {
+    left: 20,
+    backgroundColor: '#f57c00',
+  },
+  rightSwipe: {
+    right: 20,
+    backgroundColor: '#4caf50',
+  },
+  swipeText: {
+    color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
-    lineHeight: 32,
   },
 });
 

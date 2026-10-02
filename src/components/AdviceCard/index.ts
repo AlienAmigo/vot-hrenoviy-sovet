@@ -1,1 +1,1 @@
-export default './AdviceCard';
+export { default } from './AdviceCard';
