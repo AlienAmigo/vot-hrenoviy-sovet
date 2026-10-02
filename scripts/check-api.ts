@@ -46,7 +46,9 @@ const expectApiError = async (
   } catch (error) {
     if (!(error instanceof AdviceApiError)) {
       failures += 1;
-      console.error(`  FAIL ${label} — получен не AdviceApiError: ${String(error)}`);
+      console.error(
+        `  FAIL ${label} — получен не AdviceApiError: ${String(error)}`,
+      );
       return undefined;
     }
     console.log(`  ok   ${label} (${error.message})`);
@@ -67,7 +69,9 @@ interface RawResponse {
 }
 
 const rawOnce = async (path: string): Promise<RawResponse> => {
-  const response = await fetch(`${HOST}${path}`, { headers: { Accept: 'application/json' } });
+  const response = await fetch(`${HOST}${path}`, {
+    headers: { Accept: 'application/json' },
+  });
   return {
     status: response.status,
     contentType: response.headers.get('content-type') ?? '',
@@ -131,9 +135,15 @@ const main = async (): Promise<void> => {
     },
   };
   const parsedSingle = parseAdvice(singleEnvelope);
-  assert(parsedSingle.id === 26385, 'data-объект (latest) разбирается в Advice');
+  assert(
+    parsedSingle.id === 26385,
+    'data-объект (latest) разбирается в Advice',
+  );
   assert(parsedSingle.text.length > 0, 'обязательные поля на месте');
-  assert(parsedSingle.html === 'Переверни<br>блять<br>календарь!', 'html сохраняется');
+  assert(
+    parsedSingle.html === 'Переверни<br>блять<br>календарь!',
+    'html сохраняется',
+  );
   assert(parsedSingle.tags?.length === 1, 'tags сохраняются');
 
   const listEnvelope = {
@@ -166,19 +176,30 @@ const main = async (): Promise<void> => {
   });
   assert(withJunk.html === undefined, 'нестроковый html отбрасывается');
   assert(withJunk.tags === undefined, 'нестроковый tags отбрасывается');
-  assert(withJunk.conclusions?.length === 1, 'в conclusions остаётся только валидный элемент');
+  assert(
+    withJunk.conclusions?.length === 1,
+    'в conclusions остаётся только валидный элемент',
+  );
   const errorText = await expectApiError(
     async () => parseAdvice({ status: 'error', errors: ['No advices'] }),
     'конверт со status:"error" даёт AdviceApiError',
   );
-  assert(errorText?.includes('No advices') === true, 'в тексте ошибки видно причину от сервера');
+  assert(
+    errorText?.includes('No advices') === true,
+    'в тексте ошибки видно причину от сервера',
+  );
 
   await expectApiError(
     async () => parseAdvice({ status: 'success', errors: [], data: null }),
     'null вместо data отклоняется',
   );
   await expectApiError(
-    async () => parseAdviceList({ status: 'success', errors: [], data: { id: 1, text: 'объект' } }),
+    async () =>
+      parseAdviceList({
+        status: 'success',
+        errors: [],
+        data: { id: 1, text: 'объект' },
+      }),
     'объект вместо массива у random-advices отклоняется',
   );
   await expectApiError(
@@ -213,7 +234,8 @@ const main = async (): Promise<void> => {
   assert(!isAdvice({}), 'isAdvice отклоняет пустой объект');
 
   assert(
-    htmlToText('Разреши<br>блять<br>себе<br>отдохнуть!') === 'Разреши\nблять\nсебе\nотдохнуть!',
+    htmlToText('Разреши<br>блять<br>себе<br>отдохнуть!') ===
+      'Разреши\nблять\nсебе\nотдохнуть!',
     'htmlToText: <br> -> перевод строки',
   );
   assert(
@@ -221,36 +243,58 @@ const main = async (): Promise<void> => {
     'htmlToText: <br/> тоже',
   );
   assert(
-    htmlToText('<span class="heighten">делай<br>в&nbsp;одиночку!</span>') === 'делай\nв одиночку!',
+    htmlToText('<span class="heighten">делай<br>в&nbsp;одиночку!</span>') ===
+      'делай\nв одиночку!',
     'htmlToText: теги снимаются, &nbsp; -> пробел',
   );
   assert(
-    htmlToText('Хуй с ним, делай в одиночку!') === 'Хуй с ним, делай в одиночку!',
+    htmlToText('Хуй с ним, делай в одиночку!') ===
+      'Хуй с ним, делай в одиночку!',
     'htmlToText: чистый текст не меняется',
   );
 
   section('Локальная валидация параметров (без сети)');
 
-  await expectApiError(async () => fetchAdvices({ limit: 0 }), 'limit=0 отклоняется до запроса');
-  await expectApiError(async () => fetchAdvices({ limit: 2.5 }), 'дробный limit отклоняется');
+  await expectApiError(
+    async () => fetchAdvices({ limit: 0 }),
+    'limit=0 отклоняется до запроса',
+  );
+  await expectApiError(
+    async () => fetchAdvices({ limit: 2.5 }),
+    'дробный limit отклоняется',
+  );
   await expectApiError(
     async () => fetchAdvices({ startID: -1 }),
     'отрицательный startID отклоняется',
   );
-  await expectApiError(async () => fetchAdviceById(0), 'fetchAdviceById(0) отклоняется до запроса');
-  await expectApiError(async () => fetchAdviceById(1.5), 'дробный id отклоняется');
+  await expectApiError(
+    async () => fetchAdviceById(0),
+    'fetchAdviceById(0) отклоняется до запроса',
+  );
+  await expectApiError(
+    async () => fetchAdviceById(1.5),
+    'дробный id отклоняется',
+  );
   section('Живые запросы к API');
 
   console.log(`  базовый адрес: ${API_BASE_URL}`);
-  assert(API_BASE_URL === 'https://fucking-great-advice.ru/api/v2', 'только HTTPS, версия v2');
+  assert(
+    API_BASE_URL === 'https://fucking-great-advice.ru/api/v2',
+    'только HTTPS, версия v2',
+  );
 
   const batch = await live(() => fetchAdvices());
   assert(batch.length > 0, `random-advices -> ${batch.length} советов`);
   assert(batch.length <= MAX_BATCH_SIZE, `батч не больше ${MAX_BATCH_SIZE}`);
   const batchIds = batch.map((advice) => advice.id);
-  assert(new Set(batchIds).size === batchIds.length, 'внутри батча нет повторов id');
   assert(
-    batch.every((advice) => typeof advice.html === 'string' && advice.html.length > 0),
+    new Set(batchIds).size === batchIds.length,
+    'внутри батча нет повторов id',
+  );
+  assert(
+    batch.every(
+      (advice) => typeof advice.html === 'string' && advice.html.length > 0,
+    ),
     'у каждого совета непустой html',
   );
   assert(
@@ -267,7 +311,10 @@ const main = async (): Promise<void> => {
   }
 
   const limited = await live(() => fetchAdvices({ limit: 3 }));
-  assert(limited.length > 0 && limited.length <= 3, `limit=3 -> ${limited.length} советов`);
+  assert(
+    limited.length > 0 && limited.length <= 3,
+    `limit=3 -> ${limited.length} советов`,
+  );
 
   const clamped = await live(() => fetchAdvices({ limit: 1000 }));
   assert(
@@ -276,8 +323,13 @@ const main = async (): Promise<void> => {
   );
 
   const startId = 25852;
-  const fromStart = await live(() => fetchAdvices({ limit: 5, startID: startId }));
-  assert(fromStart[0]?.id === startId, `startID=${startId} -> этот совет идёт первым`);
+  const fromStart = await live(() =>
+    fetchAdvices({ limit: 5, startID: startId }),
+  );
+  assert(
+    fromStart[0]?.id === startId,
+    `startID=${startId} -> этот совет идёт первым`,
+  );
   assert(fromStart.length > 1, 'к startID добавляются случайные советы');
 
   const byId = await live(() => fetchAdviceById(26385));
@@ -287,7 +339,10 @@ const main = async (): Promise<void> => {
     () => live(() => fetchAdviceById(999999)),
     'несуществующий id -> ошибка',
   );
-  assert(notFound === 'Совет #999999 не найден', 'ошибка про отсутствующий совет, а не сетевая');
+  assert(
+    notFound === 'Совет #999999 не найден',
+    'ошибка про отсутствующий совет, а не сетевая',
+  );
 
   const tagged = await live(() => fetchAdvices({ tag: 'life', limit: 8 }));
   assert(tagged.length > 0, `by-tag life -> ${tagged.length} советов`);
@@ -357,7 +412,9 @@ const main = async (): Promise<void> => {
   }
   if (legacy.status !== 200 || !legacyAdvice) {
     // Сервер изредка флапает (500/HTML) — тогда видно, что именно пришло.
-    console.log(`        ответ сервера: HTTP ${legacy.status}, тело: ${legacy.body.slice(0, 80)}`);
+    console.log(
+      `        ответ сервера: HTTP ${legacy.status}, тело: ${legacy.body.slice(0, 80)}`,
+    );
   }
   assert(legacy.status === 200, 'v1 /api/random отвечает 200 (легаси ещё жив)');
   assert(legacyAdvice, 'v1 /api/random отдаёт JSON-объект совета');

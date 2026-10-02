@@ -24,7 +24,13 @@
 import { API_BASE_URL, REQUEST_TIMEOUT_MS, MAX_BATCH_SIZE } from '@config';
 
 /* types */
-import type { AdviceConclusion, AdviceTag, AdviceQuery, Advice, RawTagFields } from '@types';
+import type {
+  AdviceConclusion,
+  AdviceTag,
+  AdviceQuery,
+  Advice,
+  RawTagFields,
+} from '@types';
 
 /** Ошибка любого уровня: сеть, таймаут, HTTP-статус, не-JSON, ошибка в конверте, кривая структура. */
 export class AdviceApiError extends Error {
@@ -57,11 +63,17 @@ export const isAdvice = (value: unknown): value is Advice => {
   if (!isRecord(value)) {
     return false;
   }
-  return typeof value.id === 'number' && typeof value.text === 'string' && value.text.length > 0;
+  return (
+    typeof value.id === 'number' &&
+    typeof value.text === 'string' &&
+    value.text.length > 0
+  );
 };
 
 /** Валидирует продолжение совета. */
-export const isAdviceConclusion = (value: unknown): value is AdviceConclusion => {
+export const isAdviceConclusion = (
+  value: unknown,
+): value is AdviceConclusion => {
   return (
     isRecord(value) &&
     typeof value.id === 'number' &&
@@ -147,7 +159,10 @@ export const htmlToText = (html: string): string => {
     .trim();
 };
 /** Универсальный GET с одинаковыми guard'ами. `path` — путь относительно API_BASE_URL. */
-const requestJson = async (path: string, externalSignal?: AbortSignal): Promise<unknown> => {
+const requestJson = async (
+  path: string,
+  externalSignal?: AbortSignal,
+): Promise<unknown> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const relayAbort = (): void => controller.abort();
@@ -172,15 +187,22 @@ const requestJson = async (path: string, externalSignal?: AbortSignal): Promise<
       // Оборачиваем только сетевые/отменённые ошибки fetch.
       if (isAbortError(error)) {
         throw new AdviceApiError(
-          externalSignal?.aborted ? 'Запрос отменён' : `Таймаут запроса (${REQUEST_TIMEOUT_MS} мс)`,
+          externalSignal?.aborted
+            ? 'Запрос отменён'
+            : `Таймаут запроса (${REQUEST_TIMEOUT_MS} мс)`,
         );
       }
-      throw new AdviceApiError(error instanceof Error ? error.message : 'Сетевая ошибка');
+      throw new AdviceApiError(
+        error instanceof Error ? error.message : 'Сетевая ошибка',
+      );
     }
 
     // Дальше — валидация. Мёртвые роуты отвечают HTML, поэтому content-type проверяем до json().
     if (!response.ok) {
-      throw new AdviceApiError(`API вернул HTTP ${response.status}`, response.status);
+      throw new AdviceApiError(
+        `API вернул HTTP ${response.status}`,
+        response.status,
+      );
     }
 
     const contentType = response.headers.get('content-type') ?? '';
@@ -194,7 +216,10 @@ const requestJson = async (path: string, externalSignal?: AbortSignal): Promise<
     try {
       return await response.json();
     } catch {
-      throw new AdviceApiError('Не удалось разобрать JSON-ответ', response.status);
+      throw new AdviceApiError(
+        'Не удалось разобрать JSON-ответ',
+        response.status,
+      );
     }
   } finally {
     clearTimeout(timeout);
@@ -208,7 +233,9 @@ const unwrapEnvelope = (payload: unknown): unknown => {
     throw new AdviceApiError('Неожиданная структура ответа API');
   }
   if (payload.status !== 'success') {
-    const errors = Array.isArray(payload.errors) ? payload.errors.filter(isString) : [];
+    const errors = Array.isArray(payload.errors)
+      ? payload.errors.filter(isString)
+      : [];
     throw new AdviceApiError(
       `API вернул ошибку${errors.length > 0 ? `: ${errors.join('; ')}` : ''}`,
     );
@@ -280,7 +307,9 @@ export const fetchAdvices = async (
 
   const tag = typeof query.tag === 'string' ? query.tag.trim() : '';
   let path =
-    tag.length > 0 ? `random-advices-by-tag?tag=${encodeURIComponent(tag)}` : 'random-advices';
+    tag.length > 0
+      ? `random-advices-by-tag?tag=${encodeURIComponent(tag)}`
+      : 'random-advices';
   if (parts.length > 0) {
     path += `${tag.length > 0 ? '&' : '?'}${parts.join('&')}`;
   }
@@ -292,7 +321,10 @@ export const fetchAdvices = async (
  * Конкретный совет по id. Отдельной ручки нет: startID у random-advices ставит нужный
  * совет первым. Если первым пришёл другой совет — значит такого id в базе нет.
  */
-export const fetchAdviceById = async (id: number, signal?: AbortSignal): Promise<Advice> => {
+export const fetchAdviceById = async (
+  id: number,
+  signal?: AbortSignal,
+): Promise<Advice> => {
   const adviceId = normalizeAdviceId(id);
   const advices = await fetchAdvices({ limit: 1, startID: adviceId }, signal);
   const first = advices[0];
@@ -303,12 +335,16 @@ export const fetchAdviceById = async (id: number, signal?: AbortSignal): Promise
 };
 
 /** Последний (сегодняшний) совет. */
-export const fetchLatestAdvice = async (signal?: AbortSignal): Promise<Advice> => {
+export const fetchLatestAdvice = async (
+  signal?: AbortSignal,
+): Promise<Advice> => {
   return parseAdvice(await requestJson('latest', signal));
 };
 
 /** Справочник тегов. `alias` — значение для query `tag`. */
-export const fetchTags = async (signal?: AbortSignal): Promise<readonly AdviceTag[]> => {
+export const fetchTags = async (
+  signal?: AbortSignal,
+): Promise<readonly AdviceTag[]> => {
   const data = unwrapEnvelope(await requestJson('tags', signal));
   if (!Array.isArray(data)) {
     throw new AdviceApiError('API вернул не массив тегов');

@@ -9,3 +9,6 @@ export const REQUEST_TIMEOUT_MS = 8_000;
  * поэтому большие значения урезаются локально.
  */
 export const MAX_BATCH_SIZE = 40;
+
+/** Длительность анимации свайпа, мс. */
+export const SWIPE_ANIMATION_DURATION = 300;

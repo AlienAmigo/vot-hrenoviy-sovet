@@ -11,7 +11,10 @@ import { registerHooks } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+);
 
 /** Читает paths из tsconfig.json (tsconfig допускает комментарии и хвостовые запятые). */
 const loadPaths = () => {
@@ -20,7 +23,9 @@ const loadPaths = () => {
   try {
     config = JSON.parse(raw);
   } catch {
-    const noComments = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const noComments = raw
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
     config = JSON.parse(noComments.replace(/,\s*([}\]])/g, '$1'));
   }
   return config.compilerOptions?.paths ?? {};
@@ -37,7 +42,11 @@ for (const [key, targets] of Object.entries(loadPaths())) {
   if (star === -1) {
     exact.set(key, targets);
   } else {
-    wildcards.push({ prefix: key.slice(0, star), suffix: key.slice(star + 1), targets });
+    wildcards.push({
+      prefix: key.slice(0, star),
+      suffix: key.slice(star + 1),
+      targets,
+    });
   }
 }
 // Длинный префикс важнее: `@api/*` не должен перехватывать то, что точнее ложится на `@/*`.
@@ -66,7 +75,9 @@ const probe = (target) => {
         path.join(base, 'index.tsx'),
       ];
   return (
-    candidates.find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) ?? null
+    candidates.find(
+      (candidate) => existsSync(candidate) && statSync(candidate).isFile(),
+    ) ?? null
   );
 };
 
