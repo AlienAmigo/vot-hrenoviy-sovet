@@ -13,6 +13,9 @@ export const MAX_BATCH_SIZE = 40;
 /** Длительность анимации свайпа, мс. */
 export const SWIPE_ANIMATION_DURATION = 300;
 
+/** Мёртвая зона (px): сдвиг мельче считается тапом, а не свайпом. */
+export const SWIPE_START_THRESHOLD = 10;
+
 /** Порог сдвига (px), после которого свайп считается совершённым. */
 export const SWIPE_THRESHOLD = 100;
 

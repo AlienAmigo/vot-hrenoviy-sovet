@@ -7,12 +7,14 @@ import {
   ImageBackground,
   Animated,
   PanResponder,
+  type PanResponderGestureState,
 } from 'react-native';
 import { useAdvice } from '@hooks/useAdvice';
 import {
   SWIPE_ANIMATION_DURATION,
   SWIPE_DISTANCE,
   SWIPE_ROLLBACK_DURATION,
+  SWIPE_START_THRESHOLD,
   SWIPE_THRESHOLD,
 } from '@config';
 import { htmlToText } from '@api/advice';
@@ -23,6 +25,13 @@ interface AdviceCardProps {
   onSwipeRight?: () => void;
   onAdviceTap?: () => void;
 }
+
+/**
+ * Жест горизонтальный, только если сдвиг по X заметнее сдвига по Y.
+ * Вертикальные жесты карточке не принадлежат: по ним ничего не происходит.
+ */
+const isHorizontalGesture = (gesture: PanResponderGestureState): boolean =>
+  Math.abs(gesture.dx) > Math.abs(gesture.dy);
 
 const AdviceCard: React.FC<AdviceCardProps> = ({
   backgroundImageUrl,
@@ -69,19 +78,25 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        // Перехватываем жест только на заметном горизонтальном сдвиге,
-        // иначе тап остаётся за TouchableOpacity.
+        // Тап и вертикальные жесты карточке не принадлежат: тап уходит
+        // в TouchableOpacity, вертикальное движение — выше по дереву.
+        onStartShouldSetPanResponder: () => false,
+        // Движение перехватываем только на заметном горизонтальном сдвиге.
         onMoveShouldSetPanResponder: (_event, gesture) =>
-          Math.abs(gesture.dx) > 10 &&
-          Math.abs(gesture.dx) > Math.abs(gesture.dy),
+          isHorizontalGesture(gesture) &&
+          Math.abs(gesture.dx) > SWIPE_START_THRESHOLD,
         onPanResponderMove: (_event, gesture) => {
-          translateX.setValue(gesture.dx);
+          // Вертикальную составляющую игнорируем: карточка едет только по X.
+          if (isHorizontalGesture(gesture)) {
+            translateX.setValue(gesture.dx);
+          }
         },
         onPanResponderRelease: (_event, gesture) => {
-          if (gesture.dx > SWIPE_THRESHOLD) {
-            completeSwipe('right');
-          } else if (gesture.dx < -SWIPE_THRESHOLD) {
-            completeSwipe('left');
+          if (
+            isHorizontalGesture(gesture) &&
+            Math.abs(gesture.dx) > SWIPE_THRESHOLD
+          ) {
+            completeSwipe(gesture.dx > 0 ? 'right' : 'left');
           } else {
             resetPosition();
           }
