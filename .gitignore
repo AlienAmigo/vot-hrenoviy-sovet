@@ -42,3 +42,17 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# AI
+.gigacode/*
+.cursor/*
+.cursorrules
+.clinerules/*
+.continue/*
+.codeium/*
+.windsurverules/*
+.github/copilot-instructions.md
+.aws/codewhisperer/*
+.tabnine/*
+**/.ai/
+**/.aichat/
