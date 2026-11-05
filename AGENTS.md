@@ -5,7 +5,7 @@
 ## Обзор
 
 Android-приложение с советами с сайта fucking-great-advice.ru. React Native + TypeScript,
-Expo SDK 57. Сейчас это **каркас с API-слоем**: экран пока шаблонный, виджет не реализован.
+Expo SDK 58. Сейчас это **каркас с API-слоем**: экран пока шаблонный, виджет не реализован.
 
 Главный критерий проекта — **минимальный размер приложения**. Любое лишнее решение по зависимостям
 и фичам должно обсуждаться, а не добавляться «по умолчанию».
@@ -16,12 +16,12 @@ Expo SDK 57. Сейчас это **каркас с API-слоем**: экран 
 
 | Компонент                             | Роль                                  |
 | ------------------------------------- | ------------------------------------- |
-| Expo SDK 57 (`expo ~57.0.25`)         | prebuild/CNG, config plugins          |
-| React Native `0.86.3`, React `19.2.3` |                                       |
+| Expo SDK 58 (`expo ~58.0.23`)         | prebuild/CNG, config plugins          |
+| React Native `0.88.1`, React `19.3.0` |                                       |
 | TypeScript `~6.0.3`                   | `strict` + `noUncheckedIndexedAccess` |
 | Шаблон `blank-typescript`             | **без `expo-router`**                 |
 | `fetch` из коробки                    | без HTTP-библиотек                    |
-| `expo-build-properties ~57.0.22`      | R8 + shrinkResources                  |
+| `expo-build-properties ~58.0.12`      | R8 + shrinkResources                  |
 
 Зависимости приложения: `expo`, `expo-build-properties`, `expo-status-bar`, `react`, `react-native`.
 Dev: `typescript`, `@types/react`, `eslint` (с `eslint-config-expo`), `prettier`
@@ -104,7 +104,7 @@ android/            # сгенерировано prebuild, в git не вход�
 | `@types`, `@types/*`           | `src/types`                        |
 
 Заведено в `tsconfig.json` (пути без `baseUrl`, по-относительному — TypeScript 6.0 объявил
-`baseUrl` устаревшим). Metro в SDK 57 читает `paths` из tsconfig сам (`experiments.tsconfigPaths`
+`baseUrl` устаревшим). Metro в SDK 58 читает `paths` из tsconfig сам (`experiments.tsconfigPaths`
 включён по умолчанию) — отдельная конфигурация не нужна; ESLint-резолвер `eslint-config-expo`
 тоже их понимает. Каталог `src/components` пока пуст — алиас заведён заранее.
 
@@ -185,7 +185,7 @@ android/            # сгенерировано prebuild, в git не вход�
    матов была бы только клиентской.
 3. **Название в лаунчере** (`name` в `app.json`) — шаблонное `vot-hrenoviy-sovet`, продуктовое
    решение.
-4. **`expo-updates` не подключаем** — в шаблонах SDK 57 его нет, EAS Build без него работает.
+4. **`expo-updates` не подключаем** — в шаблонах SDK 58 его нет, EAS Build без него работает.
    OTA можно добавить позже одним коммитом.
 5. **`expo.autolinking.exclude` не применён** — кандидаты (`expo-font`, `expo-asset`,
    `expo-file-system`) это рантайм-зависимости `expo`, исключение рискует сломать загрузку
@@ -198,10 +198,9 @@ android/            # сгенерировано prebuild, в git не вход�
 - **`ANDROID_HOME` не задан** → путь прописан в `android/local.properties` (`sdk.dir=...`).
   Файл в gitignore-каталоге `/android`, поэтому **после каждого `expo prebuild` его нужно
   создавать заново**, иначе Gradle не найдёт SDK.
-- Android SDK: `~/Android/Sdk`, платформы `android-35`/`android-36`, build-tools `36.0.0`.
+- Android SDK: `~/Android/Sdk`, платформы `android-36`/`android-37`, build-tools `37.0.0`.
   Этого достаточно: каталог версий Expo читает `react-native/gradle/libs.versions.toml`,
-  где `compileSdk=36`, `targetSdk=36`, `buildTools=36.0.0`, `minSdk=24` — доустановка SDK 37
-  не нужна.
+  где `compileSdk=37`, `targetSdk=36`, `buildTools=37.0.0`, `minSdk=24` — SDK 37 уже установлен.
 - JDK 17 (`openjdk 17.0.20.1`).
 - `expo install` сам дописывает плагины в `app.json`, а `prebuild` переписывает скрипты
   `android`/`ios` на `expo run:android` / `expo run:ios` — это нормально для prebuild-проекта.

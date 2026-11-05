@@ -1,13 +1,13 @@
 # vot-hrenoviy-sovet
 
 Android-приложение с советами с сайта [fucking-great-advice.ru](https://fucking-great-advice.ru).
-React Native + TypeScript + Expo SDK 57.
+React Native + TypeScript + Expo SDK 58.
 
 ## Стек
 
 | Что                                                        | Зачем                                                                                                                   |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Expo SDK 57 (`expo ~57.0.25`, RN `0.86.3`, React `19.2.3`) | prebuild/CNG, config plugins, EAS                                                                                       |
+| Expo SDK 58 (`expo ~58.0.23`, RN `0.88.1`, React `19.3.0`) | prebuild/CNG, config plugins, EAS                                                                                       |
 | Шаблон `blank-typescript`                                  | **без `expo-router`** — он тянет ~6.2 МБ и 2459 файлов плюс `reanimated`/`gesture-handler`/`screens`, а экран пока один |
 | `fetch` из коробки                                         | без `axios` — в бандле разница нулевая                                                                                  |
 | Без навигации                                              | 1 экран, `expo-router`/React Navigation не подключены                                                                   |
@@ -35,7 +35,7 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 
 - **Node 22** (нужен `^20.19.4 || ^22.13.0 || ^24.3.0 || >=25`; v18 из nvm **не подходит**)
 - **JDK 17** — установлен (`openjdk 17.0.20.1`)
-- **Android SDK** — `~/Android/Sdk`, платформы `android-35`/`android-36`, build-tools `36.0.0`
+- **Android SDK** — `~/Android/Sdk`, платформы `android-36`/`android-37`, build-tools `37.0.0`
 - `ANDROID_HOME` **не задан** → путь прописан в `android/local.properties` (`sdk.dir=...`).
   Файл находится внутри gitignore-каталога `/android`, поэтому при первом prebuild его нужно создать заново.
 
@@ -82,7 +82,7 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 Замер размера делается на **Фазе 5** (`./gradlew bundleRelease` + `du`). Рычаги, если размер
 не устроит: `expo.autolinking.exclude`, `reactNativeArchitectures=arm64-v8a`, отключение `expo-updates`.
 
-**Решение: `expo-updates` не подключаем** — в шаблонах SDK 57 его нет, EAS Build и публикация
+**Решение: `expo-updates` не подключаем** — в шаблонах SDK 58 его нет, EAS Build и публикация
 без него работают штатно. OTA можно добавить позже одним коммитом.
 
 ## Что сделано / что дальше
