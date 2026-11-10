@@ -11,6 +11,7 @@ import {
   AdviceApiError,
   fetchAdviceById,
   fetchAdvices,
+  fetchDefaultBgImages,
   fetchLatestAdvice,
   fetchTags,
   htmlToText,
@@ -378,6 +379,58 @@ const main = async (): Promise<void> => {
   assert(
     lifeTag !== undefined && lifeTag.name === 'за жизнь',
     'tags -> у life есть человекочитаемое имя',
+  );
+  // toAdviceTag: bgColor / textColor / uiColor копируются как строки.
+  assert(
+    tags.every(
+      (tag) => tag.bgColor === undefined || typeof tag.bgColor === 'string',
+    ),
+    'toAdviceTag: bgColor всегда undefined или строка',
+  );
+  assert(
+    tags.every(
+      (tag) => tag.textColor === undefined || typeof tag.textColor === 'string',
+    ),
+    'toAdviceTag: textColor всегда undefined или строка',
+  );
+  assert(
+    tags.every(
+      (tag) => tag.uiColor === undefined || typeof tag.uiColor === 'string',
+    ),
+    'toAdviceTag: uiColor всегда undefined или строка',
+  );
+  // toAdviceTag: images фильтруются, остаются только строки.
+  assert(
+    tags.every(
+      (tag) => !tag.images || tag.images.every((i) => typeof i === 'string'),
+    ),
+    'toAdviceTag: images — только строки',
+  );
+  assert(
+    tags.every(
+      (tag) =>
+        !tag.images ||
+        tag.images.every(
+          (i) => typeof i === 'string' && i.startsWith('https://'),
+        ),
+    ),
+    'toAdviceTag: images — только абсолютные HTTPS URL',
+  );
+
+  section('fetchDefaultBgImages');
+
+  const defaultImages = await live(() => fetchDefaultBgImages());
+  assert(
+    defaultImages.length > 0,
+    `fetchDefaultBgImages -> ${defaultImages.length} изображений`,
+  );
+  assert(
+    defaultImages.every((img) => typeof img === 'string' && img.length > 0),
+    'fetchDefaultBgImages: каждый элемент — непустая строка',
+  );
+  assert(
+    defaultImages.every((img) => img.startsWith('https://')),
+    'fetchDefaultBgImages: каждый элемент — абсолютный HTTPS URL',
   );
   section('Сырые факты сервера (мимо модуля: документация сайта устарела)');
 

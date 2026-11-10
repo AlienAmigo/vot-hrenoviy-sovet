@@ -21,7 +21,13 @@
  */
 
 // Алиасы работают и в Node (check:api) — там их резолвит scripts/register-aliases.mjs.
-import { API_BASE_URL, REQUEST_TIMEOUT_MS, MAX_BATCH_SIZE } from '@config';
+import {
+  API_BASE_URL,
+  REQUEST_TIMEOUT_MS,
+  MAX_BATCH_SIZE,
+  SITE_BASE_URL,
+  DEFAULT_BG_IMAGES_PATH,
+} from '@config';
 
 /* types */
 import type {
@@ -123,6 +129,9 @@ const toAdviceTag = (raw: RawTagFields): AdviceTag => {
     isDefault?: boolean;
     images?: readonly string[];
     advicesCount?: number;
+    bgColor?: string;
+    textColor?: string;
+    uiColor?: string;
   } = { id: raw.id, name: raw.name, alias: raw.alias };
 
   if (typeof raw.title === 'string') {
@@ -138,6 +147,15 @@ const toAdviceTag = (raw: RawTagFields): AdviceTag => {
   }
   if (typeof raw.advicesCount === 'number') {
     tag.advicesCount = raw.advicesCount;
+  }
+  if (typeof raw.bgColor === 'string') {
+    tag.bgColor = raw.bgColor;
+  }
+  if (typeof raw.textColor === 'string') {
+    tag.textColor = raw.textColor;
+  }
+  if (typeof raw.uiColor === 'string') {
+    tag.uiColor = raw.uiColor;
   }
   return tag;
 };
@@ -158,8 +176,35 @@ export const htmlToText = (html: string): string => {
     .replace(/&amp;/gi, '&')
     .trim();
 };
-/** Универсальный GET с одинаковыми guard'ами. `path` — путь относительно API_BASE_URL. */
-const requestJson = async (
+/** Максимум повторных попыток на транзиентный сбой сервера (500, не-JSON, битый JSON). */
+const MAX_RETRIES = 5;
+/** Пауза между попытками, мс. */
+const RETRY_DELAY_MS = 700;
+
+/** Является ли ошибка временной, на которую стоит повторить запрос. */
+const isRetryableError = (error: unknown): boolean => {
+  if (!(error instanceof AdviceApiError)) {
+    return false;
+  }
+  if (error.name === 'AbortError') {
+    return false;
+  }
+  if (error.status !== undefined && error.status >= 500) {
+    return true;
+  }
+  const message = error.message;
+  return (
+    message.includes('не JSON') ||
+    message.includes('Не удалось разобрать JSON')
+  );
+};
+
+/** Пауза на указанное время. */
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Один HTTP-запрос без повторов. */
+const requestJsonOnce = async (
   path: string,
   externalSignal?: AbortSignal,
 ): Promise<unknown> => {
@@ -225,6 +270,26 @@ const requestJson = async (
     clearTimeout(timeout);
     externalSignal?.removeEventListener('abort', relayAbort);
   }
+};
+
+/** Универсальный GET с повторными попытками на транзиентные сбои сервера. */
+const requestJson = async (
+  path: string,
+  externalSignal?: AbortSignal,
+): Promise<unknown> => {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      return await requestJsonOnce(path, externalSignal);
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_RETRIES || !isRetryableError(error)) {
+        throw error;
+      }
+      await delay(RETRY_DELAY_MS);
+    }
+  }
+  throw lastError;
 };
 
 /** Достаёт `data` из конверта v2; status:"error" превращает в AdviceApiError (HTTP там 200!). */
@@ -358,4 +423,101 @@ export const fetchTags = async (
     }
   }
   return tags;
+};
+
+/**
+ * Загружает массив default-фонов из `/data/bg.json`.
+ * Это не v2-конверт, а прямой JSON-массив строк.
+ */
+export const fetchDefaultBgImages = async (
+  signal?: AbortSignal,
+): Promise<readonly string[]> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const relayAbort = (): void => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', relayAbort);
+    }
+  }
+
+  try {
+    let response: Response;
+    try {
+      response = await fetch(`${SITE_BASE_URL}${DEFAULT_BG_IMAGES_PATH}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw new AdviceApiError(
+          signal?.aborted
+            ? 'Запрос отменён'
+            : `Таймаут запроса (${REQUEST_TIMEOUT_MS} мс)`,
+        );
+      }
+      throw new AdviceApiError(
+        error instanceof Error ? error.message : 'Сетевая ошибка',
+      );
+    }
+
+    if (!response.ok) {
+      throw new AdviceApiError(
+        `API вернул HTTP ${response.status}`,
+        response.status,
+      );
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      throw new AdviceApiError(
+        `Ожидался JSON, получен content-type: ${contentType || 'отсутствует'}`,
+        response.status,
+      );
+    }
+
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      throw new AdviceApiError(
+        'Не удалось разобрать JSON-ответ',
+        response.status,
+      );
+    }
+
+    if (!Array.isArray(data)) {
+      throw new AdviceApiError('bg.json: ожидается массив');
+    }
+
+    const images: string[] = [];
+    for (const item of data) {
+      if (typeof item !== 'string' || item.length === 0) {
+        continue;
+      }
+      let url = item;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `${SITE_BASE_URL}${url}`;
+      }
+      if (url.startsWith('http://')) {
+        url = `https://${url.slice('http://'.length)}`;
+      }
+      if (url.startsWith('https://')) {
+        images.push(url);
+      }
+    }
+
+    if (images.length === 0) {
+      throw new AdviceApiError('bg.json: массив строк пуст после фильтрации');
+    }
+
+    return images;
+  } finally {
+    clearTimeout(timeout);
+    signal?.removeEventListener('abort', relayAbort);
+  }
 };

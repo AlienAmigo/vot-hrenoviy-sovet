@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
+  Image,
   Animated,
   PanResponder,
   type PanResponderGestureState,
@@ -21,6 +21,7 @@ import { htmlToText } from '@api/advice';
 
 interface AdviceCardProps {
   backgroundImageUrl?: string;
+  backgroundColor?: string;
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   onAdviceTap?: () => void;
@@ -35,6 +36,7 @@ const isHorizontalGesture = (gesture: PanResponderGestureState): boolean =>
 
 const AdviceCard: React.FC<AdviceCardProps> = ({
   backgroundImageUrl,
+  backgroundColor,
   onSwipeLeft,
   onSwipeRight,
   onAdviceTap,
@@ -121,23 +123,33 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
     outputRange: [0.9, 1, 0.9],
   });
 
+  if (__DEV__) {
+    console.log(
+      'backgroundColor: ',
+      backgroundColor,
+      'backgroundImageUrl',
+      backgroundImageUrl,
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {backgroundImageUrl ? (
-        <ImageBackground
-          source={{ uri: backgroundImageUrl }}
-          style={styles.backgroundImage}
-          imageStyle={styles.imageStyle}
-        >
+    <View
+      style={[styles.container, backgroundColor ? { backgroundColor } : null]}
+    >
+      {backgroundImageUrl && backgroundImageUrl.startsWith('https://') ? (
+        <View style={styles.backgroundContainer}>
+          <Image
+            source={{ uri: backgroundImageUrl }}
+            style={[styles.backgroundImage, styles.imageStyle]}
+          />
           <View style={styles.overlay} />
-        </ImageBackground>
+        </View>
       ) : null}
 
       <Animated.View
         {...panResponder.panHandlers}
         style={[
           styles.card,
-          backgroundImageUrl ? styles.cardWithBackground : null,
           { transform: [{ translateX }, { rotate: rotation }, { scale }] },
         ]}
       >
@@ -170,12 +182,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  backgroundImage: {
+  backgroundContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    overflow: 'hidden',
+  },
+  backgroundImage: {
+    width: '100%',
+    height: '100%',
     resizeMode: 'cover',
   },
   imageStyle: {
@@ -202,9 +219,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4.65,
     elevation: 8,
     position: 'relative',
-  },
-  cardWithBackground: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // Semi-transparent background when image is present
   },
   adviceContainer: {
     flex: 1,

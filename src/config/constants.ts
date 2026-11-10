@@ -1,6 +1,12 @@
 /** Адрес API (v2). Только HTTPS. */
 export const API_BASE_URL = 'https://fucking-great-advice.ru/api/v2';
 
+/** Базовый URL сайта (для статических ресурсов: фоновые изображения). */
+export const SITE_BASE_URL = 'https://fucking-great-advice.ru';
+
+/** Путь к JSON-массиву default-фонов. */
+export const DEFAULT_BG_IMAGES_PATH = '/data/bg.json';
+
 /** Таймаут одного запроса, мс. */
 export const REQUEST_TIMEOUT_MS = 8_000;
 

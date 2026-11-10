@@ -4,7 +4,7 @@ import AdviceCard from '@components/AdviceCard/AdviceCard';
 
 if (__DEV__) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require('@/devtools/ReactotronConfig');
+  require('./devtools/ReactotronConfig');
 }
 
 export default function App() {

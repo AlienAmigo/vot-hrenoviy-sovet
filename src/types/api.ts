@@ -24,6 +24,12 @@ export interface AdviceTag {
   readonly isDefault?: boolean;
   readonly images?: readonly string[];
   readonly advicesCount?: number;
+  /** Цвет фона тега (HEX). */
+  readonly bgColor?: string;
+  /** Цвет текста тега (HEX). */
+  readonly textColor?: string;
+  /** UI-цвет тега (HEX). */
+  readonly uiColor?: string;
 }
 
 /** Параметры выборки советов. */
@@ -41,4 +47,7 @@ export interface RawTagFields extends Record<string, unknown> {
   readonly id: number;
   readonly name: string;
   readonly alias: string;
+  readonly bgColor?: string | number;
+  readonly textColor?: string | number;
+  readonly uiColor?: string | number;
 }
