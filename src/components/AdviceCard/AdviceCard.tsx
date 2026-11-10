@@ -35,13 +35,14 @@ const isHorizontalGesture = (gesture: PanResponderGestureState): boolean =>
   Math.abs(gesture.dx) > Math.abs(gesture.dy);
 
 const AdviceCard: React.FC<AdviceCardProps> = ({
-  backgroundImageUrl,
+  // backgroundImageUrl,
   backgroundColor,
   onSwipeLeft,
   onSwipeRight,
-  onAdviceTap,
+  onAdviceTap = () => {},
 }) => {
-  const { advice, loading, error, fetchNewAdvice } = useAdvice();
+  const { advice, loading, error, fetchNewAdvice, backgroundImageUrl } =
+    useAdvice();
 
   // Сдвиг карточки по X. Вращение и масштаб выводятся интерполяцией.
   const translateX = useMemo(() => new Animated.Value(0), []);
@@ -110,8 +111,7 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
 
   const handleAdviceTap = useCallback(() => {
     onAdviceTap?.();
-    void fetchNewAdvice();
-  }, [onAdviceTap, fetchNewAdvice]);
+  }, []);
 
   const rotation = translateX.interpolate({
     inputRange: [-SWIPE_DISTANCE, 0, SWIPE_DISTANCE],
@@ -133,7 +133,6 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
             source={{ uri: backgroundImageUrl }}
             style={[styles.backgroundImage, styles.imageStyle]}
           />
-          <View style={styles.overlay} />
         </View>
       ) : null}
 
@@ -187,28 +186,14 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   imageStyle: {
-    opacity: 0.3, // Subtle background effect
-  },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light overlay for better text readability
+    resizeMode: 'cover',
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: 'transparent',
     width: '100%',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
     position: 'relative',
   },
   adviceContainer: {
@@ -224,7 +209,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 36,
     textTransform: 'uppercase',
-    color: '#333',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   errorText: {
     fontSize: 16,
