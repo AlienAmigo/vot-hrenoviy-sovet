@@ -194,8 +194,7 @@ const isRetryableError = (error: unknown): boolean => {
   }
   const message = error.message;
   return (
-    message.includes('не JSON') ||
-    message.includes('Не удалось разобрать JSON')
+    message.includes('не JSON') || message.includes('Не удалось разобрать JSON')
   );
 };
 

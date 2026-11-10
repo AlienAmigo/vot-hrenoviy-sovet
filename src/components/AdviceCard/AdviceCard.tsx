@@ -123,15 +123,6 @@ const AdviceCard: React.FC<AdviceCardProps> = ({
     outputRange: [0.9, 1, 0.9],
   });
 
-  if (__DEV__) {
-    console.log(
-      'backgroundColor: ',
-      backgroundColor,
-      'backgroundImageUrl',
-      backgroundImageUrl,
-    );
-  }
-
   return (
     <View
       style={[styles.container, backgroundColor ? { backgroundColor } : null]}
@@ -200,7 +191,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Light overlay for better text readability
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light overlay for better text readability
   },
   card: {
     backgroundColor: 'white',
@@ -227,11 +218,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    fontSize: 18,
+    fontFamily: 'Oswald',
+    fontWeight: '500',
+    fontSize: 32,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 36,
+    textTransform: 'uppercase',
     color: '#333',
-    fontWeight: '400',
   },
   errorText: {
     fontSize: 16,

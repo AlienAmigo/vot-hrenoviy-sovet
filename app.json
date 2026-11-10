@@ -33,6 +33,25 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/Oswald-Medium.ttf"],
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Oswald",
+                "path": "./assets/fonts/Oswald-Medium.ttf",
+                "fontDefinitions": [
+                  { "weight": 400, "path": "./assets/fonts/Oswald-Medium.ttf" },
+                  { "weight": 500, "path": "./assets/fonts/Oswald-Medium.ttf" },
+                  { "weight": 700, "path": "./assets/fonts/Oswald-Medium.ttf" }
+                ]
+              }
+            ]
+          }
+        }
       ]
     ]
   }

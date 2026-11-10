@@ -26,7 +26,6 @@ export const useAdvice = (): UseAdviceResult => {
       return { backgroundImageUrl: undefined, backgroundColor: undefined };
     }
     const result = resolveAdviceImage(advice, tags, defaultImages);
-    console.log('result', result);
     return {
       backgroundImageUrl: result.imageUrl,
       backgroundColor: result.backgroundColor,
