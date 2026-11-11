@@ -2,9 +2,13 @@ import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFill,
     flex: 1,
     alignItems: 'center',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   backgroundContainer: {
     position: 'absolute',
@@ -19,7 +23,17 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  imageStyle: {},
+  imageStyle: {
+    opacity: 0.3, // Subtle background effect
+  },
+  card: {
+    backgroundColor: 'transparent',
+    width: '100%',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
   adviceContainer: {
     flex: 1,
     width: '100%',
@@ -39,7 +53,7 @@ const styles = StyleSheet.create({
       width: 0,
       height: 0,
     },
-    textShadowRadius: 8,
+    textShadowRadius: 7,
   },
   errorText: {
     fontSize: 16,
