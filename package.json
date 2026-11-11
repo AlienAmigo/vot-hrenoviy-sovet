@@ -34,8 +34,7 @@
     "build:android:development": "NODE_ENV=development eas build --platform android --profile development --local --clear-cache",
     "build:android:prod": "NODE_ENV=production eas build --platform android --profile production --local --clear-cache",
     "build:android:prod-apk": "NODE_ENV=production eas build --platform android --profile production-apk --local --clear-cache",
-    "submit:android": "eas submit --platform android --profile production",
-    "postinstall": "patch-package"
+    "submit:android": "eas submit --platform android --profile production"
   },
   "private": true
 }
