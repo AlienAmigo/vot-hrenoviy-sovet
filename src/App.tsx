@@ -1,8 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
-import AdviceCard from '@components/AdviceCard/AdviceCard';
-
 import { useFonts } from 'expo-font';
+import AdviceScreen from '@components/AdviceScreen/AdviceScreen';
 
 if (__DEV__) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -11,13 +10,13 @@ if (__DEV__) {
 
 export default function App() {
   const [loaded] = useFonts({
-    'Oswald': require('./assets/fonts/Oswald-Medium.ttf'),
+    Oswald: require('./assets/fonts/Oswald-Medium.ttf'),
   });
 
   if (!loaded) return null;
   return (
     <View style={styles.container}>
-      <AdviceCard />
+      <AdviceScreen />
       <StatusBar style="auto" />
     </View>
   );
