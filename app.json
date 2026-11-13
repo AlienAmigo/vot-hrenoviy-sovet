@@ -35,6 +35,13 @@
         }
       ],
       [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "light"
+        }
+      ],
+      [
         "expo-font",
         {
           "fonts": ["./assets/fonts/Oswald-Medium.ttf"],
@@ -44,15 +51,25 @@
                 "fontFamily": "Oswald",
                 "path": "./assets/fonts/Oswald-Medium.ttf",
                 "fontDefinitions": [
-                  { "weight": 400, "path": "./assets/fonts/Oswald-Medium.ttf" },
-                  { "weight": 500, "path": "./assets/fonts/Oswald-Medium.ttf" },
-                  { "weight": 700, "path": "./assets/fonts/Oswald-Medium.ttf" }
+                  {
+                    "weight": 400,
+                    "path": "./assets/fonts/Oswald-Medium.ttf"
+                  },
+                  {
+                    "weight": 500,
+                    "path": "./assets/fonts/Oswald-Medium.ttf"
+                  },
+                  {
+                    "weight": 700,
+                    "path": "./assets/fonts/Oswald-Medium.ttf"
+                  }
                 ]
               }
             ]
           }
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }
