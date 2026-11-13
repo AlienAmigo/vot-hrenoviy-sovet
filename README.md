@@ -7,13 +7,15 @@ React Native + TypeScript + Expo SDK 58.
 
 | Что                                                        | Зачем                                                                                                                   |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Expo SDK 58 (`expo ~58.0.23`, RN `0.88.1`, React `19.3.0`) | prebuild/CNG, config plugins, EAS                                                                                       |
+| Expo SDK 58 (`expo ~58.0.24`, RN `0.88.1`, React `19.3.0`) | prebuild/CNG, config plugins, EAS                                                                                       |
 | Шаблон `blank-typescript`                                  | **без `expo-router`** — он тянет ~6.2 МБ и 2459 файлов плюс `reanimated`/`gesture-handler`/`screens`, а экран пока один |
 | `fetch` из коробки                                         | без `axios` — в бандле разница нулевая                                                                                  |
 | Без навигации                                              | 1 экран, `expo-router`/React Navigation не подключены                                                                   |
 
-Используемые зависимости: `expo`, `expo-build-properties`, `expo-status-bar`, `react`, `react-native`.
-Dev: `typescript`, `@types/react`, `eslint` + `eslint-config-expo`, `prettier` + `eslint-config-prettier`.
+Используемые зависимости: `expo`, `expo-build-properties`, `expo-font`, `expo-navigation-bar`,
+`expo-status-bar`, `react`, `react-native`.
+Dev: `typescript`, `@types/react`, `eslint` + `eslint-config-expo`, `prettier` + `eslint-config-prettier`,
+`reactotron-react-native` (подключается только в `__DEV__`).
 
 ## Команды
 
@@ -99,9 +101,19 @@ npx expo prebuild --platform android   # сгенерировать ./android з
 - [x] `npm run check:api` — 65 проверок, включая живые запросы
 - [x] `npx expo prebuild --platform android` — конфиг валиден
 
+Фаза 2 (главный экран) — **в работе, частично сделано**:
+
+- [x] `AdviceScreen` + `AdviceCard`: свайп-анимация (`PanResponder` + `Animated`), тап = новый совет
+- [x] Фоновые изображения по механике сайта: `fetchDefaultBgImages` (`/data/bg.json`),
+      `resolveAdviceImage` (теговые картинки → default → `bgColor`), предзагрузка через `Image.prefetch`
+- [x] Шрифт Oswald (`expo-font`)
+- [ ] Батч-загрузка (limit > 1) с локальной очередью, дедуп по `id`, история (свайп назад),
+      защита от гонок запросов
+- [ ] Pull-to-refresh, шаринг
+- План доведения: `docs/plan-phase2-completion.md`
+
 Дальше:
 
-- [ ] **Фаза 2** — главный экран: свайп истории, тап = новый совет, pull-to-refresh, шаринг
 - [ ] **Фаза 3** — виджет (решение по варианту пока не принято)
 - [ ] **Фаза 5** — сборка release, замер размера
 - [ ] **Фаза 6** — метаданные, иконки, публикация (контент/рейтинг — отложено)

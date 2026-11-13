@@ -5,7 +5,8 @@
 ## Обзор
 
 Android-приложение с советами с сайта fucking-great-advice.ru. React Native + TypeScript,
-Expo SDK 58. Сейчас это **каркас с API-слоем**: экран пока шаблонный, виджет не реализован.
+Expo SDK 58. API-слой готов, главный экран **в работе** (Фаза 2, частично сделано),
+виджет не реализован.
 
 Главный критерий проекта — **минимальный размер приложения**. Любое лишнее решение по зависимостям
 и фичам должно обсуждаться, а не добавляться «по умолчанию».
@@ -16,16 +17,18 @@ Expo SDK 58. Сейчас это **каркас с API-слоем**: экран 
 
 | Компонент                             | Роль                                  |
 | ------------------------------------- | ------------------------------------- |
-| Expo SDK 58 (`expo ~58.0.23`)         | prebuild/CNG, config plugins          |
+| Expo SDK 58 (`expo ~58.0.24`)         | prebuild/CNG, config plugins          |
 | React Native `0.88.1`, React `19.3.0` |                                       |
 | TypeScript `~6.0.3`                   | `strict` + `noUncheckedIndexedAccess` |
 | Шаблон `blank-typescript`             | **без `expo-router`**                 |
 | `fetch` из коробки                    | без HTTP-библиотек                    |
 | `expo-build-properties ~58.0.12`      | R8 + shrinkResources                  |
 
-Зависимости приложения: `expo`, `expo-build-properties`, `expo-status-bar`, `react`, `react-native`.
+Зависимости приложения: `expo`, `expo-build-properties`, `expo-font`, `expo-navigation-bar`,
+`expo-status-bar`, `react`, `react-native`.
 Dev: `typescript`, `@types/react`, `eslint` (с `eslint-config-expo`), `prettier`
-(с `eslint-config-prettier`). Больше ничего.
+(с `eslint-config-prettier`), `reactotron-react-native` (только dev, подключается в `__DEV__`).
+Больше ничего.
 
 ## Жёсткие правила
 
@@ -44,7 +47,7 @@ Dev: `typescript`, `@types/react`, `eslint` (с `eslint-config-expo`), `prettier
    релиза — от пакета зависит FQCN виджета.
 6. **`enableShrinkResourcesInReleaseBuilds` требует `enableMinifyInReleaseBuilds: true`** —
    иначе `expo prebuild` падает с ошибкой. Менять парой.
-7. **Node ≥ 22.13.** Node 18 (есть в nvm) не подходит: RN 0.86 требует
+7. **Node ≥ 22.13.** Node 18 (есть в nvm) не подходит: RN требует
    `^20.19.4 || ^22.13.0 || ^24.3.0 || >=25`.
 8. **Не коммитить** `android/`, `ios/`, `.expo/`, `node_modules/`, `.idea/` — всё в `.gitignore`.
 9. В `scripts/*.ts` — **только синтаксис, стираемый типами**: без `enum`, `namespace`,
@@ -73,22 +76,29 @@ npx expo-doctor
 ## Структура
 
 ```
-app.json            # scheme, android.package, versionCode, plugins (expo-build-properties)
+app.json            # scheme, android.package, versionCode, plugins (expo-build-properties, expo-font, …)
 index.ts            # registerRootComponent
-src/App.tsx         # шаблонный, UI ещё не написан
+src/App.tsx         # корневой компонент: шрифты, AdviceScreen, Reactotron в __DEV__
 src/api/advice.ts   # весь HTTP-слой — единственная точка доступа к API
+src/api/api_v2.md   # фактическая документация API v2 (собрана живыми запросами)
+src/components/     # AdviceScreen (обёртка), AdviceCard (карточка с жестами), alias @components
+src/hooks/          # useAdvice — загрузка советов/тегов/фонов, alias @hooks
+src/utils/          # resolveAdviceImage — выбор фона совета, alias @utils
 src/types/          # типы API (Advice, AdviceTag, …), alias @types
 src/config/         # константы (API_BASE_URL, …), alias @config
+src/devtools/       # ReactotronConfig (только __DEV__)
+src/assets/         # шрифт Oswald (копия для RN-бандла; оригинал в assets/fonts)
+docs/               # планы: рефакторинг AdviceCard, фоновые изображения, завершение Фазы 2
 scripts/check-api.ts # проверки: парсер + живые запросы
 scripts/register-aliases.mjs # резолвер tsconfig-путей для Node (--import в check:api)
-assets/             # иконки, splash
+assets/             # иконки, splash, fonts
 android/            # сгенерировано prebuild, в git не входит
 ```
 
 `src/api/advice.ts` экспортирует: `AdviceApiError`, `isAdvice`, `isAdviceConclusion`,
 `parseAdvice`, `parseAdviceList`, `htmlToText`, `fetchAdvices`, `fetchAdviceById`,
-`fetchLatestAdvice`, `fetchTags`. Типы (`Advice`, `AdviceConclusion`, `AdviceTag`,
-`AdviceQuery`) — `src/types` (alias `@types`), константы (`API_BASE_URL`,
+`fetchLatestAdvice`, `fetchTags`, `fetchDefaultBgImages`. Типы (`Advice`, `AdviceConclusion`,
+`AdviceTag`, `AdviceQuery`) — `src/types` (alias `@types`), константы (`API_BASE_URL`,
 `REQUEST_TIMEOUT_MS`, `MAX_BATCH_SIZE`) — `src/config` (alias `@config`).
 
 Ходить в сеть напрямую из компонентов нельзя — только через этот модуль.
@@ -101,12 +111,14 @@ android/            # сгенерировано prebuild, в git не вход�
 | `@api`, `@api/*`               | `src/api`                          |
 | `@config`, `@config/*`         | `src/config`                       |
 | `@components`, `@components/*` | `src/components`                   |
+| `@hooks`, `@hooks/*`           | `src/hooks`                        |
 | `@types`, `@types/*`           | `src/types`                        |
+| `@utils`, `@utils/*`           | `src/utils`                        |
 
 Заведено в `tsconfig.json` (пути без `baseUrl`, по-относительному — TypeScript 6.0 объявил
 `baseUrl` устаревшим). Metro в SDK 58 читает `paths` из tsconfig сам (`experiments.tsconfigPaths`
 включён по умолчанию) — отдельная конфигурация не нужна; ESLint-резолвер `eslint-config-expo`
-тоже их понимает. Каталог `src/components` пока пуст — алиас заведён заранее.
+тоже их понимает.
 
 **Все импорты внутри проекта — через алиасы** (кроме npm-пакетов и `node:`-билтинов):
 относительные `'./'`/`'../'` не используются. Node сам tsconfig-paths не знает, поэтому
@@ -174,7 +186,15 @@ android/            # сгенерировано prebuild, в git не вход�
 
 Дальше:
 
-- [ ] Фаза 2 — главный экран: свайп истории, тап = новый совет, pull-to-refresh, шаринг
+- [ ] **Фаза 2 — главный экран (в работе, частично сделано)**:
+  - [x] `AdviceScreen` + `AdviceCard`, свайп-анимация (`PanResponder` + `Animated`),
+        тап = новый совет
+  - [x] фоновые изображения по механике сайта (`resolveAdviceImage`, `fetchDefaultBgImages`),
+        шрифт Oswald
+  - [ ] батч-загрузка и локальная очередь, дедуп по `id`, история (свайп назад),
+        защита от гонок запросов
+  - [ ] pull-to-refresh, шаринг
+  - План доведения: `docs/plan-phase2-completion.md`
 - [ ] Фаза 3 — виджет (**вариант реализации ещё не выбран**)
 - [ ] Фаза 5 — сборка release, замер размера
 - [ ] Фаза 6 — метаданные, иконки, публикация
@@ -193,6 +213,10 @@ android/            # сгенерировано prebuild, в git не вход�
 5. **`expo.autolinking.exclude` не применён** — кандидаты (`expo-font`, `expo-asset`,
    `expo-file-system`) это рантайм-зависимости `expo`, исключение рискует сломать загрузку
    картинок. Проверять на Фазе 5, после замера размера.
+6. **Жестовая логика: `AdviceCard` против `AdviceScreen`** — план
+   `docs/plan-advice-card-refactor.md` требовал вынести `PanResponder`/`Animated` в
+   `AdviceScreen`, фактически жесты остались в `AdviceCard`. Нужно обсудить: либо довести
+   рефакторинг, либо поправить план под факт. Разбор — в `docs/plan-phase2-completion.md`.
 
 ## Окружение (локальные особенности)
 

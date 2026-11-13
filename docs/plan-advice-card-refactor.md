@@ -1,5 +1,11 @@
 # План рефакторинга AdviceCard (Вариант 1: Контейнер + презентация)
 
+> **Статус (2026-11-13): реализован НЕ полностью.** `AdviceScreen` создан и рендерится из
+> `App.tsx`, но жестовая логика (`PanResponder`, `Animated`, `completeSwipe`) осталась в
+> `AdviceCard` — критерий приёмки «`AdviceCard` не содержит `PanResponder`» не выполнен.
+> Доводить код до плана или править план под факт — открытое решение, см.
+> `docs/plan-phase2-completion.md`, задача 3.
+
 ## Проблема
 
 Сейчас вся логика сосредоточена в `src/components/AdviceCard/AdviceCard.tsx`:
